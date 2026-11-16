@@ -1,0 +1,230 @@
+[
+  {
+    "id": "2026-11-17-morning-editorial-1",
+    "date": "2026-11-17",
+    "edition": "morning",
+    "timezone": "Asia/Taipei",
+    "published_at": "2026-11-16T22:54:40+00:00",
+    "cutoff_at": "2026-11-16T22:54:40+00:00",
+    "version": 1,
+    "label": "編輯試刊",
+    "coverage_note": "本期整理 11/10–11/16 已查閱來源，包含近期追蹤；不是完整新聞覆蓋率或自動出版已啟用的證明。",
+    "articles": [
+      {
+        "id": "openai-embedded-assessments-20261116",
+        "event_id": "openai-embedded-assessments-20261116",
+        "topic": "資安",
+        "title": "OpenAI 引入四家外部評估機構，檢查模型對齊與安全防護",
+        "url": "https://openai.com/index/our-first-phase-of-embedded-assessments/",
+        "source": "OpenAI 官方公告",
+        "date": "2026-11-16T00:00:00-08:00",
+        "source_published_precision": "date",
+        "source_urls": [
+          "https://openai.com/index/our-first-phase-of-embedded-assessments/"
+        ],
+        "excerpt": "OpenAI 宣布與四家外部機構簽約，讓評估者深入檢查內部模型與防護；這是啟動評估，不是模型安全已獲認證。",
+        "facts": [
+          "OpenAI 表示已與 Apollo Research、METR、Transluce、Goodfire 簽訂首階段評估協議。",
+          "評估範圍包括模型對齊、防護措施，以及內部使用期間的監控。",
+          "公告保留機密內容刪修及負責任揭露延後機制，公開結果仍有範圍限制。"
+        ],
+        "evidence": [
+          {
+            "url": "https://openai.com/index/our-first-phase-of-embedded-assessments/",
+            "support": "公告正文列出四家機構及已簽約狀態。"
+          },
+          {
+            "url": "https://openai.com/index/our-first-phase-of-embedded-assessments/",
+            "support": "公告說明初期評估聚焦 alignment、safeguards 與 internal use。"
+          },
+          {
+            "url": "https://openai.com/index/our-first-phase-of-embedded-assessments/",
+            "support": "Publication and responsible disclosure periods 段落保留 redaction 與 disclosure delays。"
+          }
+        ],
+        "analysis": "採用 AI Agent 時，值得追蹤的是外部評估的範圍與公開結果，而不是只看廠商是否宣稱安全。",
+        "uncertainty": "目前核對的是 OpenAI 的公告內容；尚未以評估機構報告獨立證明模型安全或防護有效。",
+        "selection_reason": "涉及 AI Agent 安全治理與外部監督，比 SDK 小版本功能更具普遍影響。",
+        "newsworthiness": "涉及 AI Agent 安全治理與外部監督，比 SDK 小版本功能更具普遍影響。",
+        "editorial_kind": "governance",
+        "status": "edited",
+        "verification_status": "official_statement",
+        "verified_at": "2026-11-16T22:54:40+00:00",
+        "speech_script": "先看人工智慧安全。OpenAI 宣布，已與四家外部機構簽約，檢查模型對齊與安全防護。部分評估可接觸內部模型和監控資料。但這只是評估安排，不代表模型已通過安全認證；公開報告也可能受機密刪修與揭露時程限制。",
+        "correction_history": []
+      },
+      {
+        "id": "moenv-foreign-carbon-credit-draft-20261112",
+        "event_id": "moenv-foreign-carbon-credit-draft-20261112",
+        "topic": "環境",
+        "title": "國外碳權認可準則進入草案階段，抵碳費與碳中和宣稱須分清",
+        "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14489",
+        "source": "環境部氣候變遷署",
+        "date": "2026-11-12T00:00:00+08:00",
+        "source_published_precision": "date",
+        "source_urls": [
+          "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14489"
+        ],
+        "excerpt": "環境部預告國外減量額度認可準則草案，規範額度申請與揭露；經認可用於法定抵換的額度，不能再重複宣稱碳中和。",
+        "facts": [
+          "環境部於 11 月 12 日預告「國外減量額度認可準則」草案，並非已完成訂定。",
+          "公告要求地主國授權與相應調整，避免同一筆減量重複計算。",
+          "公告明列，法定抵換使用的額度不得再拿來宣稱企業 ESG 或產品碳中和。"
+        ],
+        "evidence": [
+          {
+            "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14489",
+            "support": "新聞稿首段明載 11 月 12 日預告草案。"
+          },
+          {
+            "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14489",
+            "support": "避免重複計算段落載有地主國授權與相應調整要求。"
+          },
+          {
+            "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14489",
+            "support": "同段明載不得再次宣稱 ESG 或產品碳中和。"
+          }
+        ],
+        "analysis": "碳管理與採購工作應把「履行法定義務」和「自願性宣稱」分開審查，並追蹤草案最終條文。",
+        "uncertainty": "本則是近期政策追蹤，不是今天新發布的法規；實際適用須查正式公告與生效狀態。",
+        "selection_reason": "直接涉及碳管理、專案查核與避免雙重宣告，保留為近期政策重點。",
+        "newsworthiness": "直接涉及碳管理、專案查核與避免雙重宣告，保留為近期政策重點。",
+        "editorial_kind": "policy",
+        "status": "edited",
+        "verification_status": "official_statement",
+        "verified_at": "2026-11-16T22:54:40+00:00",
+        "speech_script": "環境政策方面，環境部預告國外減量額度認可準則草案。重點是避免一筆減碳被重複計算：國外額度須有地主國授權與相應調整，用來履行法定抵換義務後，也不能再拿來宣稱企業或產品碳中和。請注意，目前仍是草案。",
+        "correction_history": []
+      },
+      {
+        "id": "windows-november-2026-ntlm-signing",
+        "event_id": "windows-november-2026-ntlm-signing",
+        "topic": "IT",
+        "title": "Windows 11 十一月更新強化 NTLM 簽章，管理端須留意相容性",
+        "url": "https://support.microsoft.com/en-us/servicing/os/windows-11/2026/11/kb5132061-windows-11-24h2-25h2-26h2-security-update",
+        "source": "Microsoft Support",
+        "date": "2026-11-10T00:00:00-08:00",
+        "source_published_precision": "date",
+        "source_urls": [
+          "https://support.microsoft.com/en-us/servicing/os/windows-11/2026/11/kb5132061-windows-11-24h2-25h2-26h2-security-update"
+        ],
+        "excerpt": "Microsoft 的十一月 Windows 11 更新調整 NTLM 訊息簽章預設行為，並收緊 PowerShell 編碼驗證；企業部署須同步檢查舊系統與腳本。",
+        "facts": [
+          "Microsoft 說明，此更新讓用戶端在非匿名連線中預設提供 NTLM 訊息簽章。",
+          "更新加入稽核能力，用來辨識未使用簽章的連線。",
+          "PowerShell 腳本簽章驗證收緊編碼要求，無效 UTF-8 編碼可能導致驗證失敗。"
+        ],
+        "evidence": [
+          {
+            "url": "https://support.microsoft.com/en-us/servicing/os/windows-11/2026/11/kb5132061-windows-11-24h2-25h2-26h2-security-update",
+            "support": "Security 更新項目明載非匿名連線預設提供 NTLM signing。"
+          },
+          {
+            "url": "https://support.microsoft.com/en-us/servicing/os/windows-11/2026/11/kb5132061-windows-11-24h2-25h2-26h2-security-update",
+            "support": "同項目載有辨識未簽章連線的 auditing。"
+          },
+          {
+            "url": "https://support.microsoft.com/en-us/servicing/os/windows-11/2026/11/kb5132061-windows-11-24h2-25h2-26h2-security-update",
+            "support": "Windows PowerShell 項目載有 stricter encoding validation 與 invalid UTF-8 影響。"
+          }
+        ],
+        "analysis": "這類更新會影響企業驗證與自動化維運，適合先盤點舊服務、測試已簽章腳本，再依組織流程部署。",
+        "uncertainty": "這是 11 月 10 日更新的持續關注事項，不代表今天新漏洞或所有裝置都有問題；版本與已知問題應以官方頁面為準。",
+        "selection_reason": "涉及企業驗證與維運腳本的安全及相容性，具有比例行功能更新更具體的工作影響。",
+        "newsworthiness": "涉及企業驗證與維運腳本的安全及相容性，具有比例行功能更新更具體的工作影響。",
+        "editorial_kind": "security_update",
+        "status": "edited",
+        "verification_status": "official_statement",
+        "verified_at": "2026-11-16T22:54:40+00:00",
+        "speech_script": "資訊維運方面，Windows 11 十一月更新調整了企業常用的驗證機制：用戶端在非匿名連線中，預設提供 NTLM 訊息簽章。更新也讓 PowerShell 腳本的編碼驗證更嚴格。維運人員可留意舊服務與已簽章腳本的相容性。這是近期更新追蹤，不是今天新增的漏洞公告。",
+        "correction_history": []
+      },
+      {
+        "id": "moenv-pfas-information-20261113",
+        "event_id": "moenv-pfas-information-20261113",
+        "topic": "環境",
+        "title": "PFAS 管理先蒐集使用流向，別把研商草案讀成全面禁用",
+        "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14496",
+        "source": "環境部化學物質管理署",
+        "date": "2026-11-13T00:00:00+08:00",
+        "source_published_precision": "date",
+        "source_urls": [
+          "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14496"
+        ],
+        "excerpt": "環境部說明 PFAS 管理草案，現階段重點在申報與掌握產業使用流向；列為關注化學物質，與限制或禁止使用是不同階段。",
+        "facts": [
+          "環境部 11 月 13 日說明，草案擬將部分 PFAS 公告為關注化學物質。",
+          "目的在透過申報義務與核可文件蒐集廠商運作資料、掌握使用流向。",
+          "環境部說明，後續若公告為毒性化學物質，才會增加相關限制或禁止措施。"
+        ],
+        "evidence": [
+          {
+            "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14496",
+            "support": "首段載有預計公告為關注化學物質。"
+          },
+          {
+            "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14496",
+            "support": "首段說明申報及核可文件用於運作資訊與流向蒐集。"
+          },
+          {
+            "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14496",
+            "support": "首段區分後續公告毒性化學物質與限制、禁止措施。"
+          }
+        ],
+        "analysis": "環境合規工作宜先盤點物質、用途與供應鏈資料，再依正式公告判斷義務，避免把草案誤當禁令。",
+        "uncertainty": "本則轉述主管機關對研商草案的說明，沒有判定 PFAS 安全，也不代表所有 PFAS 都受同一規範。",
+        "selection_reason": "與化學物質管理及產業申報直接相關，且需澄清草案、列管與禁用的差別。",
+        "newsworthiness": "與化學物質管理及產業申報直接相關，且需澄清草案、列管與禁用的差別。",
+        "editorial_kind": "policy",
+        "status": "edited",
+        "verification_status": "official_statement",
+        "verified_at": "2026-11-16T22:54:40+00:00",
+        "speech_script": "再看化學物質管理。環境部說明，部分 PFAS 的草案規劃先列為關注化學物質，透過申報掌握廠商使用流向。這與全面禁用不同；後續若改列毒性化學物質，才會增加相關限制。對企業來說，先盤點使用資料，並追蹤正式公告，比把研商草案當成已生效禁令更準確。",
+        "correction_history": []
+      },
+      {
+        "id": "openai-academic-access-20261116",
+        "event_id": "openai-academic-access-20261116",
+        "topic": "AI",
+        "title": "OpenAI 擴大研究者方案：下一輪開放五萬份 Plus 補助",
+        "url": "https://openai.com/index/expanding-chatgpt-for-academic-researchers/",
+        "source": "OpenAI 官方公告",
+        "date": "2026-11-16T00:00:00-08:00",
+        "source_published_precision": "date",
+        "source_urls": [
+          "https://openai.com/index/expanding-chatgpt-for-academic-researchers/"
+        ],
+        "excerpt": "OpenAI 宣布研究者方案下一輪於 11 月 23 日開放，提供五萬份符合資格的補助；新一輪是 Plus，不能與先前試辦的 Pro 混為一談。",
+        "facts": [
+          "OpenAI 公告下一輪於 11 月 23 日開放，採符合資格者先到先得。",
+          "這一輪提供 50,000 份補助，每份涵蓋申請人及最多兩位合作者的 ChatGPT Plus 使用權。",
+          "公告說明先前試辦提供 Pro，新一輪調整為 Plus。"
+        ],
+        "evidence": [
+          {
+            "url": "https://openai.com/index/expanding-chatgpt-for-academic-researchers/",
+            "support": "公告明載 Monday, November 23、first-come first-served 與資格要求。"
+          },
+          {
+            "url": "https://openai.com/index/expanding-chatgpt-for-academic-researchers/",
+            "support": "首段列出 50,000 new grants 及最多兩位合作者。"
+          },
+          {
+            "url": "https://openai.com/index/expanding-chatgpt-for-academic-researchers/",
+            "support": "Building on what we learned 段落區分試辦 Pro 與新一輪 Plus。"
+          }
+        ],
+        "analysis": "有學術合作的團隊可留意申請資格與開放日期，但方案規模不等於研究成效已被證實。",
+        "uncertainty": "這是廠商方案公告，不是普遍免費或保證取得資格；請依申請頁確認最新條件。",
+        "selection_reason": "影響學術研究工具可近性，提供具體日期與使用條件；不引用未獨立驗證的效率宣稱。",
+        "newsworthiness": "影響學術研究工具可近性，提供具體日期與使用條件；不引用未獨立驗證的效率宣稱。",
+        "editorial_kind": "access_policy",
+        "status": "edited",
+        "verification_status": "official_statement",
+        "verified_at": "2026-11-16T22:54:40+00:00",
+        "speech_script": "最後是研究工具。OpenAI 表示，研究者方案下一輪將在十一月二十三日開放，提供五萬份補助，符合資格者先到先得。每份可涵蓋申請人和最多兩位合作者。這次提供的是 ChatGPT Plus，與先前試辦的 Pro 不同；申請前仍要確認資格與條件。",
+        "correction_history": []
+      }
+    ]
+  }
+]

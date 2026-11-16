@@ -1,11 +1,14 @@
-# News Station — 閱讀工作站試用版
+# News Station — 繁中編輯試刊
 
-Cloudflare Worker ESM，無套件相依。首頁為手機優先繁體中文介面；/api/inbox 平行讀取四個公開來源，每個 10 秒逾時，逐一回報成功或失敗，每次重新擷取，不使用平台 default cache。
+Cloudflare Worker ESM，無套件相依。手機首頁從 `/api/editions` 讀取已編輯的期刊；不再要求使用者自行準備 JSON 才有新聞。
 
-候選新聞保留來源原文，狀態永遠為 unreviewed，不自動進入正式期刊。正式期刊由使用者核對後透過 JSON 匯入，僅儲存在該瀏覽器。此版本不是計畫 M1–M4 完成版。
+- `content/editions.json`：含實際日期、截止時間與版本的編輯資料。每則包含繁中摘要、事實、逐項引用、判讀、限制、口播稿與更正紀錄。
+- `worker/editorial.js`：候選篩選與編輯 schema 驗證。SDK 小版本預設移至技術參考，安全修補送待評估，明示贊助排除。
+- `worker/index.js`：私有站路由與六個來源擷取。來源獨立逾時與錯誤顯示，不使用平台 default cache。
+- `web/app.js`：閱讀、分類、來源、收藏、已讀、備份。裝置 TTS 朗讀單則或整期專用口播稿，支援倍速、暫停、分句進度；不生成 MP3。
+- `build.mjs`：驗證期刊、檢查前端語法並嵌入單一 Worker ESM。
+- `scripts/add-edition.mjs`：加入新的合格期刊；拒絕沒有新增事實的同日事件重報。
 
-已實作：閱讀、來源跳轉、分類、搜尋、晨晚報切換、收藏、已讀、資料匯出還原、審核版 JSON 匯入、Web Speech 朗讀試用、PWA manifest。
+官方聲明與獨立證實有不同狀態；本次五則為核對過的一手公告，沒有宣稱第三方驗證成效。
 
-尚未實作：SQLite/FTS5、跨裝置同步、來源自動發現、獨立補漏搜尋、事件聚類、自動查證與更正、自動編輯出版、Drive 歸檔、MP3、72 小時清理、七天試用。Service worker 不做離線內容快取；不承諾離線可用。
-
-正式音訊、歸檔和出版需要後續配置儲存與外部服務。伺服器不保存個人收藏、期刊或音訊。不需 API key。官方聲明不代表獨立證實。
+未接通：摘要模型 API、自動查證、無人值守晨晚報、SQLite/FTS5、跨裝置同步、獨立補漏、Google Drive 歸檔、正式音訊與 72 小時清理。Service worker 不做離線內容快取。

@@ -1,5 +1,21 @@
 # 初始來源候選，並非完整涵蓋清單
 sources:
+  - source_id: openai-news
+    name: OpenAI 新聞室
+    url: https://openai.com/news/rss.xml
+    topic: AI
+    language: en
+    type: first_party_announcement
+    fetch: rss
+    trust_note: 廠商聲明須與獨立證實分開
+  - source_id: moenv
+    name: 台灣環境部
+    url: https://enews.moenv.gov.tw/News/List?Lang=zh-tw&key=11
+    topic: 環境
+    language: zh-TW
+    type: government
+    fetch: html_list
+    trust_note: 候選清單未提供日期時保留空值，須進原文核對
   - source_id: openai
     name: OpenAI Python SDK
     url: https://api.github.com/repos/openai/openai-python/releases?per_page=6
