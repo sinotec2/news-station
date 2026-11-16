@@ -11,7 +11,8 @@ await writeFile('.generated/client-data.js','export const CLIENT_SCRIPT = '+JSON
 let worker=await readFile('worker/index.js','utf8');
 worker=worker.replace(/^import .*;\n/gm,'');
 const policy=(await readFile('worker/editorial.js','utf8')).replace(/export /g,'');
-const bundle='const EDITIONS='+JSON.stringify(editions)+';\nconst CLIENT_SCRIPT='+JSON.stringify(client)+';\n'+policy+'\n'+worker;
+const neural=(await readFile('worker/neural-audio.js','utf8')).replace(/export /g,'');
+const bundle='const EDITIONS='+JSON.stringify(editions)+';\nconst CLIENT_SCRIPT='+JSON.stringify(client)+';\n'+policy+'\n'+neural+'\n'+worker;
 await mkdir('dist/server',{recursive:true});
 await mkdir('dist/.openai',{recursive:true});
 await writeFile('dist/server/index.js',bundle);
