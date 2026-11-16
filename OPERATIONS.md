@@ -10,6 +10,6 @@
 
 `npm test` 驗證來源解析、連結限制、路由與來源失敗處理；`npm run build` 產生 dist/server/index.js。
 
-來源健康結果可能快取 15 分鐘，失敗會保留原因。需要新增來源時修改 worker/index.js 的 SOURCES 與解析器。
+來源健康結果每次重新擷取，失敗會保留原因。需要新增來源時修改 worker/index.js 的 SOURCES 與解析器。
 
 此執行環境沒有 Sites workflow helper 與 cua_repl.js，因此以 Git 與 tar 封裝部署，未進行瀏覽器或真機 QA。執行環境直接 fetch 外部來源失敗，需在部署後確認正式環境的來源健康狀態。
