@@ -21,9 +21,9 @@ test('edited edition endpoint has Chinese summaries, fact citations and clean sp
 function clientHarness(){
  const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',hidden:false,classList:{toggle(){}},setAttribute(){},showModal(){this.open=true}});return nodes.get(id)};
  const memory=new Map();let said=[];
- const document={querySelector:node,querySelectorAll(){return []},addEventListener(){}};
+ const handlers=new Map();const document={querySelector:node,querySelectorAll(){return []},addEventListener(type,handler){handlers.set(type,handler)}};
  const context=vm.createContext({document,console,localStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},window:{speechSynthesis:{}},navigator:{},Intl,Date,URL,Blob,setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>({editions})}),SpeechSynthesisUtterance:class{constructor(text){this.text=text}},speechSynthesis:{cancel(){},speak(u){said.push(u)},getVoices(){return []}}});
- return {context,nodes,node,said};
+ return {context,nodes,node,said,handlers};
 }
 test('client renders real summaries, filters SDKs and speaks edited text without requiring imports',async()=>{
  const h=clientHarness();vm.runInContext(await readFile('web/app.js','utf8'),h.context);
@@ -36,4 +36,30 @@ test('client renders real summaries, filters SDKs and speaks edited text without
  assert.equal(vm.runInContext('items().length',h.context),1);assert.doesNotMatch(h.node('#list').innerHTML,/v3.52.0|## Features/);
  vm.runInContext("state.showTechnical=true;render();openItem(0)",h.context);assert.match(h.node('#detail').innerHTML,/<details><summary>展開原始摘錄/);
  vm.runInContext("state.view='edition';state.edition='evening';render()",h.context);assert.equal(vm.runInContext('current()',h.context),undefined);assert.match(h.node('#list').innerHTML,/這一期尚未發布/);
+});
+test('play click starts without opening or approving any story',async()=>{
+ const h=clientHarness();vm.runInContext(await readFile('web/app.js','utf8'),h.context);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(vm.runInContext('state.read.length',h.context),0);
+ const button={dataset:{action:'speak'}};
+ h.handlers.get('click')({target:{closest:()=>button}});
+ assert.equal(h.said.length,1);assert.equal(vm.runInContext('player.active',h.context),true);
+ assert.equal(vm.runInContext('state.read.length',h.context),0);
+ assert.doesNotMatch(h.node('#toast').textContent,/尚無審核|需要查證/);
+});
+test('homepage and updater bypass stale HTML and expose the current release',async()=>{
+ const page=await worker.fetch(new Request('https://station.test/'));
+ assert.match(page.headers.get('Cache-Control'),/no-store/);
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.3');
+ const version=await worker.fetch(new Request('https://station.test/api/version'));
+ assert.equal((await version.json()).version,'0.1.3');
+ const sw=await worker.fetch(new Request('https://station.test/sw.js'));
+ assert.match(sw.headers.get('Cache-Control'),/no-store/);
+ const script=await sw.text();
+ const navigations=[];const handlers={};let activated;
+ class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.3'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
+ vm.runInContext(script,context);
+ handlers.activate({waitUntil(promise){activated=promise}});await activated;
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.3']);
 });
