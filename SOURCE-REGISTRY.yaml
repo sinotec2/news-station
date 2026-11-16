@@ -1,0 +1,32 @@
+# 初始來源候選，並非完整涵蓋清單
+sources:
+  - source_id: openai
+    name: OpenAI Python SDK
+    url: https://api.github.com/repos/openai/openai-python/releases?per_page=6
+    topic: AI
+    language: en
+    type: first_party_release
+    fetch: github_json
+    trust_note: 廠商一手發布，不代表獨立證實
+  - source_id: node
+    name: Node.js
+    url: https://api.github.com/repos/nodejs/node/releases?per_page=6
+    topic: IT
+    language: en
+    type: first_party_release
+    fetch: github_json
+  - source_id: cisa
+    name: CISA KEV
+    url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+    topic: 資安
+    language: en
+    type: government
+    fetch: json
+  - source_id: nasa
+    name: NASA Earth Observatory
+    url: https://earthobservatory.nasa.gov/feeds/earth-observatory.rss
+    topic: 環境
+    language: en
+    type: government
+    fetch: rss
+# 不擷取付費全文，僅公開標題、短摘錄及連結；完整來源授權清查待完成。
