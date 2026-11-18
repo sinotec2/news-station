@@ -10,6 +10,8 @@ News Station 透過 Sites 的 OPENAI_API_KEY 連接 OpenAI Realtime。整期開�
 
 ## API 與金鑰
 
+整期播放若遇到某一則的合成逐字稿與口播稿不符，會丟棄該次音訊並補做一次。補做時按開場與完整句子分成最多三段，逐段確認 Cedar 與逐字稿後才接成單一 WAV。每則新聞整次請求最多增加三次可能計費的合成；其中一段仍不符即停止。單則播放沿用一次核對流程，配額、連線或聲音設定錯誤直接回報。
+
 - GET /api/audio/status：只回傳是否設定、模型、音色與儲存狀態，無秘密。
 - POST /api/audio：只接受已發布 edition_id / article_id，不接受任意文字，不讓前端拿到金鑰；目前限同源私人站。回傳完整單則 WAV 與到期時間。
 - OPENAI_API_KEY 只存 Sites runtime secret。依 Sites identity-and-secrets 技能，透過 OpenAI Developers 的 openai-platform-api-key 流程安全設定。不得放前端、Git、日誌或要求貼到對話。

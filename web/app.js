@@ -105,6 +105,7 @@ async function loadEditions(){
  try{
   const page=await fetchEditionPage();
   state.published=page.editions;state.nextBefore=page.next_before||null;
+  if(page.archive_status==='unavailable')state.publicationError='目前無法讀取期刊庫，暫時顯示隨站保存的期刊。';
   if(!state.editionPicked){
    const latest=page.editions.filter(e=>Date.parse(e.published_at)<=Date.now()).sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at))[0];
    if(latest)state.edition=latest.edition;

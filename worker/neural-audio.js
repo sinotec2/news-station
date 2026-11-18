@@ -6,6 +6,7 @@ const AUDIO_BYTES_LIMIT=12*1024*1024;
 const ARTICLE_BYTES_LIMIT=32*1024*1024;
 const SAMPLE_RATE=24000;
 export const NARRATION_INSTRUCTIONS='你是台灣繁體中文新聞播報員。使用自然台灣華語，沉穩清楚，中等語速。按語意詞組連貫發音，句內短停頓，換主題時略停；對數字與關鍵限制自然加重語氣，不要逐字念、每句重新起音或誇張演戲。英文專有名詞保持清楚。唯一任務是逐字朗讀使用者提供的口播稿，不增刪、不回答、不摘要、不解釋。不省略草案、未證實等限定語。';
+const DICTATION_INSTRUCTIONS=NARRATION_INSTRUCTIONS+'本段是完整口播的一部分。請從第一個字開始，按原稿順序每個字只念一次。數字、年份和單位照稿念，到片段末尾立即收音。';
 function audioProblem(code,status=502){const error=new Error(code);error.code=code;error.status=status;return error}
 function providerProblem(status, code, fallback){
  if(code==='insufficient_quota'||code==='billing_hard_limit_reached')return audioProblem('provider_quota_exceeded',503);
@@ -50,6 +51,18 @@ function* narrationParts(text) {
  }
  yield text.slice(offset);
 }
+// At most two cuts per recovery. Keep the ordinal with the first factual sentence.
+function recoveryParts(text) {
+ const introEnd=text.startsWith('歡迎收聽')?text.indexOf('\n')+1:0;
+ const signoff=text.lastIndexOf('\n以上是本期');
+ const factsEnd=signoff<0?text.length:signoff;
+ const firstSentence=text.slice(introEnd,factsEnd).match(/^[\s\S]*?[。！？][」』”’]*/u);
+ const cuts=[];
+ if(introEnd>0&&introEnd<text.length)cuts.push(introEnd);
+ if(firstSentence&&introEnd+firstSentence[0].length<factsEnd)cuts.push(introEnd+firstSentence[0].length);
+ if(signoff>0&&cuts.length<2)cuts.push(signoff);
+ return [...cuts,text.length].map((end,i)=>text.slice(i?cuts[i-1]:0,end));
+}
 // Remove only long near-silent edges. Keep a short lead-in and release, including soft consonants.
 function trimPcmEdges(chunks) {
  const size=chunks.reduce((n,c)=>n+c.byteLength,0);
@@ -72,7 +85,7 @@ export function pcmToWav(chunks){
  ascii(0,'RIFF');view.setUint32(4,36+size,true);ascii(8,'WAVE');ascii(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,24000,true);view.setUint32(28,48000,true);view.setUint16(32,2,true);view.setUint16(34,16,true);ascii(36,'data');view.setUint32(40,size,true);let offset=44;for(const c of chunks){wav.set(c,offset);offset+=c.byteLength}return wav;
 }
 export function neuralStatus(env={}){return {provider:'openai',model:NEURAL_MODEL,voice:NEURAL_VOICE,ready:!!env.OPENAI_API_KEY,storage:env.AUDIO_BUCKET?'shared_object_store':'request_only',retention_hours:72,ai_generated:true}}
-export async function generateNeuralAudio(script,{apiKey,connect,timeoutMs=90000}={}){
+export async function generateNeuralAudio(script,{apiKey,connect,timeoutMs=90000,editionMode=false}={}){
  if(!apiKey)throw audioProblem('not_configured',503);
  if(typeof script!=='string'||script.length<20||/https?:\/\/|```/.test(script))throw audioProblem('invalid_script',400);
  const open=connect|| (async()=>{
@@ -82,17 +95,26 @@ export async function generateNeuralAudio(script,{apiKey,connect,timeoutMs=90000
   throw providerProblem(response.status,problem?.error?.code,'provider_connection_failed');
  });
  const chunks=[],transcripts=[];
- let total=0;
- for(const part of narrationParts(script)){
-  const result=await narratePart(part,await open(),timeoutMs);
+ let total=0,recoveryAvailable=editionMode;
+ async function appendVerified(text,instructions){
+  const result=await narratePart(text,await open(),timeoutMs,instructions);
   total+=result.pcm.byteLength;
   if(total>ARTICLE_BYTES_LIMIT)throw audioProblem('audio_too_large');
   chunks.push(result.pcm);
   transcripts.push(result.transcript);
  }
+ for(const part of narrationParts(script)){
+  try{
+   await appendVerified(part,NARRATION_INSTRUCTIONS);
+  }catch(error){
+   if(error.code!=='narration_mismatch'||!recoveryAvailable)throw error;
+   recoveryAvailable=false;
+   for(const piece of recoveryParts(part))await appendVerified(piece,DICTATION_INSTRUCTIONS);
+  }
+ }
  return {audio:pcmToWav(chunks),transcript:transcripts.join(''),format:'audio/wav'};
 }
-function narratePart(script,socket,timeoutMs){
+function narratePart(script,socket,timeoutMs,instructions){
  return new Promise((resolve,reject)=>{
   let finished=false,started=false,sessionConfigured=false,transcript='',bytes=0;const chunks=[];
   const timer=setTimeout(()=>finish(audioProblem('provider_timeout',504)),timeoutMs);
@@ -104,7 +126,7 @@ function narratePart(script,socket,timeoutMs){
    try{
     const data=JSON.parse(event.data);
     if(data.type==='error')return finish(providerProblem(null,data.error?.code,'provider_rejected_request'));
-    if(data.type==='session.created'&&!sessionConfigured){sessionConfigured=true;socket.send(JSON.stringify({type:'session.update',session:{type:'realtime',model:NEURAL_MODEL,instructions:NARRATION_INSTRUCTIONS,output_modalities:['audio'],audio:{output:{voice:NEURAL_VOICE,format:{type:'audio/pcm',rate:24000}}}}}));}
+    if(data.type==='session.created'&&!sessionConfigured){sessionConfigured=true;socket.send(JSON.stringify({type:'session.update',session:{type:'realtime',model:NEURAL_MODEL,instructions,output_modalities:['audio'],audio:{output:{voice:NEURAL_VOICE,format:{type:'audio/pcm',rate:24000}}}}}));}
     else if(data.type==='session.updated'&&!started){
      if(data.session?.audio?.output?.voice!==NEURAL_VOICE)return finish(audioProblem('provider_voice_unconfirmed'));
      started=true;socket.send(JSON.stringify({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_text',text:script}]}}));socket.send(JSON.stringify({type:'response.create',response:{output_modalities:['audio']}}));
@@ -136,7 +158,7 @@ export async function prepareNeuralArticle(article,env,{generate=generateNeuralA
  const script=edition?editionNarration(edition,article):article.speech_script;
  const key='news-audio/'+await audioFingerprint(article,script)+'.wav';const store=env.AUDIO_BUCKET;
  if(store){const cached=await store.get(key);if(cached){const expires=Number(cached.customMetadata?.expires_at);if(expires>now&&expires-now<=AUDIO_TTL_MS)return {audio:await cached.arrayBuffer(),expires_at:expires,cached:true,key};await store.delete(key)}}
- const result=await generate(script,{apiKey:env.OPENAI_API_KEY});const expires=now+AUDIO_TTL_MS;
+ const result=await generate(script,{apiKey:env.OPENAI_API_KEY,editionMode:!!edition});const expires=now+AUDIO_TTL_MS;
  if(store)await store.put(key,result.audio,{httpMetadata:{contentType:'audio/wav',cacheControl:'private, no-store'},customMetadata:{expires_at:String(expires),article_id:article.id}});
  return {audio:result.audio,expires_at:expires,cached:false,key};
 }

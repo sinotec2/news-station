@@ -17,7 +17,8 @@ function connection(transcript,confirmedVoice='cedar',pcm=new Uint8Array([0,0,64
    if(data.type==='conversation.item.create')requested=data.item.content[0].text;
    if(data.type==='response.create')queueMicrotask(()=>{
     emit({type:'response.output_audio.delta',delta:Buffer.from(pcm).toString('base64')});
-    emit({type:'response.output_audio_transcript.done',transcript:transcript??requested});
+    const spoken=typeof transcript==='function'?transcript(requested):transcript??requested;
+    emit({type:'response.output_audio_transcript.done',transcript:spoken});
     emit({type:'response.done',response:{status:'completed'}});
    });
   },
@@ -121,4 +122,63 @@ test('only long quiet edges are shortened, preserving internal pauses and soft m
  const expected=sound.slice(7800-2400,8580+1+3600);
  assert.deepEqual(result.audio.slice(44),new Uint8Array(expected.buffer));
  assert.equal(new DataView(result.audio.buffer).getUint32(40,true),expected.byteLength);
+});
+
+test('a repeated 年 in a framed story recovers from exact Cedar fragments without the failed audio',async t=>{
+ const story={...article,speech_script:'示範測站計畫運作到二〇三〇年底。觀測資料將持續公布，研究人員可以查閱各地站點的水溫紀錄。'};
+ const edition={...editions[0],articles:[story,editions[0].articles[1]]};
+ const sessions=[];
+ t.mock.method(globalThis,'fetch',async()=>{
+  const n=sessions.length+1;
+  const session=connection(n===1?text=>text.replace('年底','年年底'):undefined,'cedar',new Uint8Array([n,1]));
+  sessions.push(session);
+  return {webSocket:session.socket};
+ });
+ const origin='https://news.test';
+ const request=new Request(origin+'/api/audio',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},
+  body:JSON.stringify({edition_id:edition.id,article_id:story.id,mode:'edition'})});
+ const response=await handleNeuralAudio(request,{OPENAI_API_KEY:'test-only'},[edition]);
+ assert.equal(response.status,200);
+ const [initial,...recovery]=sessions.map(s=>s.sent.find(m=>m.type==='conversation.item.create').item.content[0].text);
+ assert.deepEqual(recovery,[
+  '歡迎收聽十一月十七日的晨報。本期共有兩則新聞。\n',
+  '第一則，示範測站計畫運作到二〇三〇年底。',
+  '觀測資料將持續公布，研究人員可以查閱各地站點的水溫紀錄。'
+ ]);
+ assert.equal(recovery.join(''),initial);
+ assert.equal(sessions.length,4);
+ assert.ok(sessions.every(s=>s.isClosed()));
+ assert.notEqual(sessions[1].sent[0].session.instructions,sessions[0].sent[0].session.instructions);
+ const wav=new Uint8Array(await response.arrayBuffer());
+ assert.deepEqual(wav.slice(44),new Uint8Array([2,1,3,1,4,1]));
+});
+
+test('recovery stops on the first failed fragment and skips quota, voice, and single-story failures',async()=>{
+ const script='歡迎收聽十一月十七日的晨報。本期共有兩則新聞。\n第一則，'+article.speech_script;
+ let requests=0;
+ const options={editionMode:true,apiKey:'test-only',connect:async()=>{
+  requests++;
+  return connection(requests===1||requests===3?'持續多念了一個字':undefined).socket;
+ }};
+ await assert.rejects(generateNeuralAudio(script,options),e=>e.code==='narration_mismatch');
+ assert.equal(requests,3);
+ for(const [mode,code] of [[true,'provider_quota_exceeded'],[true,'provider_voice_unconfirmed'],[false,'narration_mismatch']]){
+  requests=0;
+  await assert.rejects(generateNeuralAudio(script,{...options,editionMode:mode,connect:async()=>{
+   requests++;
+   if(code==='provider_quota_exceeded')throw Object.assign(Error('quota'),{code});
+   return connection('偏離口播稿',code==='provider_voice_unconfirmed'?'marin':'cedar').socket;
+  }}),e=>e.code===code);
+  assert.equal(requests,1);
+ }
+});
+
+test('a long story gets at most one recovery pass across its original segments',async()=>{
+ const script=('長'.repeat(360)+'。').repeat(4);
+ let requests=0;
+ await assert.rejects(generateNeuralAudio(script,{editionMode:true,apiKey:'test-only',connect:async()=>{
+  requests++;
+  return connection(requests===2?undefined:'未依原稿').socket;
+ }}),e=>e.code==='narration_mismatch');
+ assert.equal(requests,3);
 });

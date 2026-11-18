@@ -35,6 +35,11 @@ async function listEditions(url, env) {
     }
     return Response.json({...page, publication_mode:env?.EDITION_BUCKET?'edition_store':'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
   } catch (error) {
+    if (env?.EDITION_BUCKET && EDITIONS.length && !url.search && (!error.status || error.status >= 500)) {
+      const snapshot = await readEditionPage({}, EDITIONS);
+      snapshot.editions.sort((a,b) => Date.parse(a.published_at) - Date.parse(b.published_at));
+      return Response.json({...snapshot, archive_status:'unavailable', publication_mode:'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
+    }
     return Response.json({error:error.code || 'edition_store_unavailable'}, {status:error.status || 503, headers:privateHeaders});
   }
 }
