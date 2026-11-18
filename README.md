@@ -15,11 +15,22 @@ node scripts/preview.mjs
 
 打開 `http://127.0.0.1:8787`。預覽只監聽本機、只接受讀取請求；期刊資料有變更時，重新整理頁面即可讀到新一期。需要其他埠號可設定 `PORT`。按 Ctrl+C 關閉。首次啟動和期刊更新會自動執行建置；單獨建置可用 `npm run build`，輸出為 `dist/server/index.js`。
 
-本機預覽可讀隨附的期刊，也可在「來源工作區」手動擷取已啟用來源。預覽不讀 API 金鑰，裝置朗讀由瀏覽器提供。要用 Cedar，請在支援 Cloudflare Worker WebSocket 的環境啟用伺服器端金鑰。
+本機預覽會讀取 `content/editions.json`。獨立 ZIP 的期刊庫從空白開始，可先跑以下晨晚報更新指令，取得第一份合格期刊後再重新整理。測試使用獨立的虛構新聞資料，空期刊庫也能執行全部檢查。「來源工作區」可手動擷取已啟用來源。裝置朗讀由瀏覽器提供。要用 Cedar，請在支援 Cloudflare Worker WebSocket 的環境啟用伺服器端金鑰。
 
 ## 建立獨立副本
 
-原始碼位於私人 GitHub 儲存庫，需要讀取權限。可依儲存庫政策 fork 到自己的私人空間，再 clone 自己的副本。如果組織停用私人 fork，請所有者授權後複製到新的私人儲存庫。儲存庫目前沒有提供公開軟體授權。部署給其他讀者、公開散布或商用前，請確認程式的使用權與各媒體的內容條款。[私人儲存庫](https://github.com/sinotec2/news-station)
+收到獲授權的範本 ZIP 後，解壓縮並進入 `news-station` 資料夾，即可依上方步驟執行。範本保留程式、來源表、虛構測試資料與空白環境設定。使用者可以在這個資料夾執行 `git init`，建立自己的 Git 儲存庫。
+
+已有 Git 副本的維護者可用 Python 3.8 以上執行下列指令，從**最近一次提交**產生相同內容的範本 ZIP。指令要求輸出檔名尚未存在。尚未提交的本機修改要先提交才會收錄。
+
+```sh
+python3 scripts/export-template.py ../News-Station-template.zip
+```
+
+儲存庫目前沒有提供公開軟體授權。部署給其他讀者、公開散布或商用前，請確認程式的使用權與各媒體的內容條款。
+
+<!-- source-repository-only -->
+原始碼位於私人 GitHub 儲存庫，需要讀取權限。可依儲存庫政策 fork 到自己的私人空間，再 clone 自己的副本。如果組織停用私人 fork，可請所有者授權提供乾淨的範本 ZIP。[私人儲存庫](https://github.com/sinotec2/news-station)
 
 完成 fork 後，將下列 `YOUR_ACCOUNT` 換成副本所在的帳號或組織。
 
@@ -27,10 +38,11 @@ node scripts/preview.mjs
 git clone https://github.com/YOUR_ACCOUNT/news-station.git
 cd news-station
 ```
+<!-- /source-repository-only -->
 
-1. 在**新副本**執行 `git remote get-url origin`，確認它指向自己的 Git 儲存庫。要先在本機試跑，可從副本移除 `.openai/hosting.json`，或把內容改成 `{}`。建置和預覽均支援沒有 Sites 專案 ID 的情形。
+1. 範本 ZIP 已移除原站的專案 ID 與遠端連結。若用 fork 建立副本，在**新副本**執行 `git remote get-url origin`，確認它指向自己的 Git 儲存庫，並從副本的 `.openai/hosting.json` 移除原 project ID。本機建置和預覽都支援空白的 Sites 識別。
 2. 要上線，先建立自己的私人 Site，使用新 Site 配發的 project ID 和專屬的 Sites Git 遠端。在副本的 `.openai/hosting.json` 設定新 ID，再用該 Site 的建置及發布流程部署。保留僅自己或指定讀者可讀的權限。
-3. 需要即時寫入期刊時，在新專案的 `.openai/hosting.json` 保留 `"r2": {"binding":"EDITION_BUCKET"}`。這個綁定由部署平台對應到該副本專用的私有儲存空間。本機預覽直接使用 `content/editions.json`。
+3. 需要即時寫入期刊時，在新專案的 `.openai/hosting.json` 保留 `"r2": "EDITION_BUCKET"`。這個綁定由部署平台對應到該副本專用的私有儲存空間。本機預覽直接使用 `content/editions.json`。
 4. 在新 Site 設定自己的伺服器端機密，再於作業機設定該站的接收網址與憑證。個人收藏與已讀紀錄由各站讀者的瀏覽器儲存。副本若要提供既有期刊給其他讀者，請先確認這些稿件的使用權。
 
 ### 環境變數
