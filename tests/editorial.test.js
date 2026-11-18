@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {candidateDecision,validateBriefing,speechSegments} from '../worker/editorial.js';
 import worker from '../worker/index.js';
-const editions=JSON.parse(await readFile('content/editions.json','utf8'));
+import {editions} from './fixtures/editions.js';
 test('routine SDK updates stay technical; genuine security fixes receive review',()=>{
  const item={title:'v3.52.0',url:'https://github.com/openai/openai-python/releases/tag/v3.52.0',excerpt:'Features: add schedule pause reasons'};
  assert.equal(candidateDecision(item).lane,'technical');
@@ -15,8 +15,36 @@ test('publication rejects changelogs, unsupported facts, duplicated events and f
  const edition=editions[0];assert.equal(validateBriefing(edition),edition);
  for(const edit of [e=>{e.articles[0].title='v3.52.0'},e=>{e.articles[0].evidence=[]},e=>{e.articles[0].speech_script='## Release https://example.com'},e=>{e.articles[0].verification_status='unreviewed'},e=>{e.articles[0].editorial_kind='routine_release'},e=>{e.articles.push(e.articles[0])},e=>{e.published_at='2099-01-01T00:00:00Z'}]){const invalid=structuredClone(edition);edit(invalid);assert.throws(()=>validateBriefing(invalid))}
 });
-test('edited edition endpoint has Chinese summaries, fact citations and clean speech',async()=>{
- const res=await worker.fetch(new Request('https://station.test/api/editions'));assert.equal(res.status,200);const data=await res.json();assert.equal(data.automatic_publication,false);assert.ok(data.editions[0].articles.length>=4);data.editions.forEach(e=>validateBriefing(e));const chunks=speechSegments(data.editions[0].articles);assert.ok(chunks.length>5);assert.ok(chunks.every(c=>c.text.length<=120&&!/https?:\/\/|##|\[[^\]]+\]\(/.test(c.text)));assert.equal(speechSegments([{status:'unreviewed',speech_script:'不該朗讀'}]).length,0);
+test('the production bundle serves the configured archive grouped by date and edition',async()=>{
+ const {default:deployedWorker}=await import('../dist/server/index.js');
+ const configured=JSON.parse(await readFile('content/editions.json','utf8'));
+ const expected=new Map();
+ for(const issue of configured){
+  const key=issue.date+'-'+issue.edition;
+  if(!expected.has(key)||(issue.version||1)>=(expected.get(key).version||1))expected.set(key,issue);
+ }
+ const received=[];
+ const cursors=new Set();
+ let before=null;
+ do{
+  const suffix=before?'?before='+encodeURIComponent(before):'';
+  const response=await deployedWorker.fetch(new Request('https://station.test/api/editions'+suffix));
+  assert.equal(response.status,200);
+  const page=await response.json();
+  assert.equal(page.automatic_publication,false);
+  received.push(...page.editions);
+  before=page.next_before;
+  if(before){assert.ok(!cursors.has(before),'archive cursor must advance');cursors.add(before)}
+ }while(before);
+ const byId=(a,b)=>a.id.localeCompare(b.id);
+ assert.deepEqual(received.sort(byId),[...expected.values()].sort(byId));
+});
+test('verified articles produce clean, bounded speech segments and unreviewed items stay silent',()=>{
+ for(const issue of editions)validateBriefing(issue);
+ const chunks=speechSegments(editions[0].articles);
+ assert.ok(chunks.length>5);
+ assert.ok(chunks.every(c=>c.text.length<=120&&!/https?:\/\/|##|\[[^\]]+\]\(/.test(c.text)));
+ assert.equal(speechSegments([{status:'unreviewed',speech_script:'不該朗讀'}]).length,0);
 });
 function clientHarness(clientEditions=editions){
  const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',hidden:false,classList:{toggle(){}},setAttribute(){},showModal(){this.open=true}});return nodes.get(id)};
@@ -29,9 +57,9 @@ test('client renders real summaries, filters SDKs and speaks edited text without
  const h=clientHarness([editions[0]]);vm.runInContext(await readFile('web/app.js','utf8'),h.context);
  await new Promise(resolve=>setImmediate(resolve));
  const html=h.node('#list').innerHTML;
- assert.match(html,/三|四家外部評估機構/);assert.match(html,/為何重要 · AI 判讀/);assert.match(html,/brief-facts/);assert.doesNotMatch(html,/\[3\.52\.0\]|commit\/|compare\//);
+ assert.ok(html.includes(editions[0].articles[0].title));assert.match(html,/為何重要 · AI 判讀/);assert.match(html,/brief-facts/);assert.doesNotMatch(html,/\[3\.52\.0\]|commit\/|compare\//);
  assert.equal(vm.runInContext('current().articles.length',h.context),5);
- vm.runInContext("beginSpeech(current().articles,current().id)",h.context);assert.equal(h.said.length,1);assert.match(h.said[0].text,/人工智慧安全/);assert.doesNotMatch(h.said[0].text,/https|##/);
+ vm.runInContext("beginSpeech(current().articles,current().id)",h.context);assert.equal(h.said.length,1);assert.ok(editions[0].articles[0].speech_script.startsWith(h.said[0].text));assert.doesNotMatch(h.said[0].text,/https|##/);
  vm.runInContext("stopSpeech();state.view='inbox';state.items=[{id:'sdk',title:'v3.52.0',topic:'AI',lane:'technical',source:'SDK',excerpt:'## Features',url:'https://example.com'},{id:'news',title:'New policy',topic:'AI',lane:'review',source:'Official',url:'https://example.com'}];render()",h.context);
  assert.equal(vm.runInContext('items().length',h.context),1);assert.doesNotMatch(h.node('#list').innerHTML,/v3.52.0|## Features/);
  vm.runInContext("state.showTechnical=true;render();openItem(0)",h.context);assert.match(h.node('#detail').innerHTML,/<details><summary>展開原始摘錄/);
@@ -72,29 +100,29 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.8');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.9');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.8');
+ assert.equal((await version.json()).version,'0.1.9');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.8'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.9'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.8']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.9']);
 });
 
 test('home opens the most recent published edition and preserves a reader’s manual switch',async()=>{
- const evening=editions.find(edition=>edition.id==='2026-11-18-evening-editorial-1');
+ const evening=editions.find(edition=>edition.edition==='evening');
  assert.equal(evening.articles.length,9);
  const h=clientHarness([editions[0],evening]);
  vm.runInContext(await readFile('web/app.js','utf8'),h.context);
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(vm.runInContext('current().id',h.context),evening.id);
- assert.match(h.node('#list').innerHTML,/柴油車/);
+ assert.ok(h.node('#list').innerHTML.includes(evening.articles[0].title));
  h.handlers.get('click')({target:{closest:()=>({dataset:{edition:'morning'}})}});
  await vm.runInContext('loadEditions()',h.context);
  assert.equal(vm.runInContext('current().id',h.context),editions[0].id);
@@ -121,7 +149,7 @@ test('published playback uses the configured voice for the issue and story, adva
   return new Promise(resolve=>{deliverTrack=resolve});
  };
  const audio=h.node('#neural-audio');
- Object.assign(audio,{play:async()=>{audio.paused=false},pause(){audio.paused=true},load(){},removeAttribute(){}});
+ Object.assign(audio,{play:async()=>{audio.paused=false;audio.onplaying?.()},pause(){audio.paused=true;audio.onpause?.()},load(){},removeAttribute(){}});
  const detail=h.node('#detail');
  detail.close=()=>{detail.open=false};
  const click=dataset=>h.handlers.get('click')({target:{closest:()=>({dataset})}});
@@ -141,20 +169,27 @@ test('published playback uses the configured voice for the issue and story, adva
  assert.match(note.textContent,/按播放後/);
  assert.equal(requests.length,0);
  click(hero.dataset);click(hero.dataset);
- assert.deepEqual(requests.map(r=>r.body),[{edition_id:edition.id,article_id:edition.articles[0].id}]);
+ assert.deepEqual(requests.map(r=>r.body),[{edition_id:edition.id,article_id:edition.articles[0].id,mode:'edition'}]);
  deliverTrack(wav());await settle();
  assert.match(playerStatus.textContent,/Cedar 播報中 · 1 \/ 9 則/);
  assert.equal(h.said.length,0);
- assert.equal(requests.length,1);
+ assert.equal(requests.length,2,'only the next track is prepared while the current one plays');
+ audio.onplaying();audio.onplaying();
+ assert.equal(requests.length,2);
  audio.onended();
- assert.deepEqual(requests[1].body,{edition_id:edition.id,article_id:edition.articles[1].id});
+ assert.equal(requests.length,2,'the handoff joins the same in-flight request');
+ assert.match(h.node('#neural-state').textContent,/銜接第 2 則/);
+ assert.deepEqual(requests[1].body,{edition_id:edition.id,article_id:edition.articles[1].id,mode:'edition'});
  click({action:'neural-stop'});
  assert.ok(requests[1].signal.aborted);
  deliverTrack(wav());await settle();
  assert.equal(h.node('#neural-player').hidden,true);
  assert.equal(audio.onended,null);
+ click({neural:'0'});
+ assert.deepEqual(requests[2].body,{edition_id:edition.id,article_id:edition.articles[0].id},'single narration has its own script and key');
+ deliverTrack(wav());await settle();
  click({neural:'0'});await settle();
- assert.equal(requests.length,2);
+ assert.equal(requests.length,3,'single replay uses the tab cache');
  assert.match(h.node('#neural-state').textContent,/分頁暫存重播/);
  click({action:'neural-stop'});
  vm.runInContext('openItem(1)',h.context);
@@ -162,23 +197,23 @@ test('published playback uses the configured voice for the issue and story, adva
  assert.match(detail.innerHTML,/data-speak="1">▷ 裝置朗讀/);
  click({neural:'1'});
  assert.equal(detail.open,false);
- assert.equal(requests[2].body.article_id,edition.articles[1].id);
+ assert.equal(requests[3].body.article_id,edition.articles[1].id);
  deliverTrack(Response.json({error:'provider_auth_failed'},{status:502}));await settle();
  assert.match(h.node('#neural-state').textContent,/API 金鑰/);
  click({neural:'1'});deliverTrack(wav('marin'));await settle();
  assert.match(h.node('#neural-state').textContent,/指定音色不符/);
  assert.equal(h.said.length,0);
  click({neural:'1'});deliverTrack(wav());await settle();
- assert.equal(requests.length,5);
+ assert.equal(requests.length,6);
  audio.onerror();click({neural:'1'});deliverTrack(wav());await settle();
- assert.equal(requests.length,6,'a decoding error evicts the clip');
+ assert.equal(requests.length,7,'a decoding error evicts the clip');
  vm.runInContext("current().articles[1].speech_script+='更新。'",h.context);
  click({neural:'1'});deliverTrack(wav());await settle();
- assert.equal(requests.length,7,'a corrected script must be regenerated');
+ assert.equal(requests.length,8,'a corrected script must be regenerated');
  const later=Date.now()+61000;
  h.context.Date=class extends Date{static now(){return later}};
  click({neural:'0'});deliverTrack(wav());await settle();
- assert.equal(requests.length,8,'expired clips must be regenerated');
+ assert.equal(requests.length,9,'expired clips must be regenerated');
  assert.match(h.node('#neural-state').textContent,/已到期/);
  click({speak:'1'});
  assert.equal(h.said.length,1);
@@ -191,7 +226,7 @@ test('an issue skips only an unfaithful narration, retains its title at completi
  let played=0;
  let problem='narration_mismatch';
  const audio=h.node('#neural-audio');
- Object.assign(audio,{play:async()=>{played++},pause(){},load(){},removeAttribute(){}});
+ Object.assign(audio,{play:async()=>{played++;audio.paused=false;audio.onplaying?.()},pause(){audio.paused=true;audio.onpause?.()},load(){},removeAttribute(){}});
  h.context.fetch=async(path,options)=>{
   if(path==='/api/editions')return Response.json({editions:[edition]});
   if(path==='/api/audio/status')return Response.json({ready:true,voice:'cedar'});
@@ -229,4 +264,89 @@ test('tab cache evicts least-recently-used audio within its byte budget',async()
   for(const key of ['one','two','three','one','four'])rememberAudioClip(key,clip);
   rememberAudioClip('too large',{...clip,blob:{size:RECENT_AUDIO_LIMIT+1}});`,h.context);
  assert.deepEqual(Array.from(vm.runInContext('recentAudio.keys()',h.context)),['three','one','four']);
+});
+
+test('issue preload waits for actual playback, respects a paused handoff, and aborts on edition changes',async()=>{
+ const edition=editions.at(-1);
+ const h=clientHarness([edition]);
+ const requests=[];
+ const audio=h.node('#neural-audio');
+ let plays=0;
+ Object.assign(audio,{
+  paused:true,
+  async play(){this.paused=false;plays++;this.onplaying?.()},
+  pause(){this.paused=true;this.onpause?.()},load(){},removeAttribute(){},
+ });
+ h.context.fetch=async(path,options)=>{
+  if(path==='/api/editions')return Response.json({editions:[edition]});
+  if(path==='/api/audio/status')return Response.json({ready:true,voice:'cedar'});
+  const response=new Promise(resolve=>requests.push({signal:options.signal,finish:()=>resolve(new Response(new Uint8Array(48),{headers:{'Content-Type':'audio/wav','X-Audio-Voice':'cedar','X-Audio-Expires-At':String(Date.now()+60000)}}))}));
+  return response;
+ };
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ const click=dataset=>h.handlers.get('click')({target:{closest:()=>({dataset})}});
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await tick();
+ click({action:'neural-play'});
+ click({action:'pause'});
+ requests[0].finish();await tick();
+ assert.equal(plays,0);assert.equal(requests.length,1);
+ assert.match(h.node('#neural-state').textContent,/按播放可續播/);
+ click({action:'pause'});await tick();
+ assert.equal(plays,1);assert.equal(requests.length,2);
+ click({action:'pause'});
+ assert.ok(audio.paused);assert.equal(requests.length,2);
+ click({action:'pause'});await tick();
+ assert.equal(plays,2);assert.equal(requests.length,2);
+ audio.onended();await tick();
+ click({action:'pause'});
+ requests[1].finish();await tick();
+ assert.equal(plays,2);assert.equal(requests.length,2);
+ click({action:'pause'});await tick();
+ assert.equal(plays,3);assert.equal(requests.length,3);
+ click({edition:'morning'});
+ assert.ok(requests[2].signal.aborted);
+ requests[2].finish();await tick();
+ assert.equal(plays,3);assert.equal(requests.length,3);
+ assert.equal(h.node('#neural-player').hidden,true);
+});
+
+test('archive pagination retries the same cursor, merges once and keeps the selected issue playing',async()=>{
+ const latest=editions.at(-1);
+ const existing={...latest,id:'saved-edition',date:'2026-11-16',published_at:'2026-11-16T20:00:00+08:00'};
+ const earlier={...existing,id:'older-edition',date:'2026-11-03',published_at:'2026-11-03T20:00:00+08:00'};
+ const h=clientHarness();
+ const paths=[];
+ let returnPage;
+ h.context.fetch=async path=>{
+  paths.push(path);
+  if(path==='/api/editions')return Response.json({editions:[latest,existing],next_before:'2026-11-04'});
+  if(path==='/api/audio/status')return Response.json({ready:true,voice:'cedar'});
+  if(path==='/api/audio')return new Response(new Uint8Array(48),{headers:{'Content-Type':'audio/wav','X-Audio-Voice':'cedar','X-Audio-Expires-At':String(Date.now()+60000)}});
+  assert.equal(path,'/api/editions?before=2026-11-04');
+  return new Promise(resolve=>{returnPage=resolve});
+ };
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ const click=dataset=>h.handlers.get('click')({target:{closest:()=>({dataset})}});
+ const audio=h.node('#neural-audio');
+ Object.assign(audio,{play:async()=>{audio.paused=false},pause(){audio.paused=true},load(){},removeAttribute(){}});
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await tick();
+ assert.match(h.node('#body').innerHTML,/載入較早期刊/);
+ assert.equal(paths.some(path=>path.includes('?before=')),false);
+ h.handlers.get('change')({target:{matches:()=>false,id:'edition-archive',value:existing.id}});
+ click({neural:'0'});await tick();
+ const playing=audio.src;
+ assert.ok(playing);assert.equal(audio.paused,false);
+ click({action:'older-editions'});click({action:'older-editions'});
+ assert.equal(paths.filter(path=>path.includes('?before=')).length,1);
+ returnPage(new Response('unavailable',{status:503}));await tick();
+ assert.match(h.node('#body').innerHTML,/重試載入較早期刊/);
+ assert.match(h.node('#body').innerHTML,/503/);
+ click({action:'older-editions'});
+ returnPage(Response.json({editions:[existing,earlier,earlier],next_before:null}));await tick();
+ assert.equal(vm.runInContext('state.published.length',h.context),3);
+ assert.equal(vm.runInContext('current().id',h.context),existing.id);
+ assert.equal(audio.src,playing);assert.equal(audio.paused,false);
+ assert.match(h.node('#body').innerHTML,/older-edition/);
+ assert.doesNotMatch(h.node('#body').innerHTML,/data-action="older-editions"|503/);
+ assert.equal(paths.filter(path=>path==='/api/audio').length,1);
 });

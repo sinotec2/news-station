@@ -1,5 +1,7 @@
 import {load} from 'cheerio';
+import {createHash} from 'node:crypto';
 import {safeUrl} from '../worker/source-registry.js';
+import {candidateDecision} from '../worker/editorial.js';
 
 const topicRules = [
   ['資安', /資安|勒索軟體|資料外洩|零時差漏洞|網路攻擊|駭客攻擊|通行密鑰|\bpasskeys?\b|\b(?:cybersecurity|ransomware|data breach|zero-day|CVE-\d{4}|malware|phishing|cyberattack)\b/iu],
@@ -45,6 +47,7 @@ export function inspectArticleHtml(html, finalUrl) {
   const address = safeUrl($('link[rel="canonical"]').first().attr('href') ?? meta('og:url'), finalUrl);
   const canonicalUrl = address && samePublisher(finalUrl, address) ? address : finalUrl;
   const published = info?.datePublished ?? meta('article:published_time') ?? meta('datePublished');
+  const updated = info?.dateModified ?? meta('article:modified_time');
   const title = plain(info?.headline || $('main h1, article h1').first().text() || meta('og:title') || $('title').first().text());
   const locked = [false, 'false', 0].includes(info?.isAccessibleForFree);
   $('nav, footer, aside, [aria-hidden="true"], script, style, [class*="related"], [class*="recommend"]').remove();
@@ -53,7 +56,9 @@ export function inspectArticleHtml(html, finalUrl) {
   const fallback = $('article').first().length ? $('article').first() : $('main').first();
   const paragraphs = (story.length ? story : fallback).find('p').toArray();
   const body = locked ? '' : plain(paragraphs.map(node => $(node).text()).join(' ') || (story.length ? story.text() : ''));
-  return {title, body, articlePage, locked, canonicalUrl, publishedAt: Number.isFinite(Date.parse(published)) ? published : null};
+  return {title, body, articlePage, locked, canonicalUrl, sponsored: Boolean(info?.sponsor),
+    publishedAt: Number.isFinite(Date.parse(published)) ? published : null,
+    updatedAt: Number.isFinite(Date.parse(updated)) ? updated : null};
 }
 
 export function decideArticle(article) {
@@ -120,10 +125,15 @@ export async function reviewOriginal(candidate, {fetcher = fetch, reserve, deadl
           http_status: response.status, retry_after: response.headers.get('retry-after')};
       }
       const article = inspectArticleHtml(await readLimited(response), url);
+      const classification = candidateDecision({title:article.title, excerpt:article.body.slice(0, 750),
+        sponsored:article.sponsored, url:article.canonicalUrl});
       return {
         ...checked, ...decideArticle(article), http_status: response.status,
         original_url: article.canonicalUrl, original_title: article.title || null,
         original_published_at: article.publishedAt, original_body_read: Boolean(article.body),
+        original_updated_at: article.updatedAt,
+        editorial_lane: classification.lane,
+        ...(article.body && !article.locked ? {body_sha256: createHash('sha256').update(article.body).digest('hex')} : {}),
       };
     }
     return {...checked, status: 'pending_original', reason: 'redirect_limit'};

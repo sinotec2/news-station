@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node build.mjs && node --test",
-    "validate:editorial": "node scripts/validate-editorial.mjs"
+    "validate:editorial": "node scripts/validate-editorial.mjs",
+    "update:morning": "node scripts/update-edition.mjs morning",
+    "update:evening": "node scripts/update-edition.mjs evening"
   },
   "devDependencies": {
     "cheerio": "^1.2.0",

@@ -2,14 +2,49 @@ import { EDITIONS } from '../.generated/edition-data.js';
 import { CLIENT_SCRIPT } from '../.generated/client-data.js';
 import {readSource} from './news-feed.js';
 import {collectNews} from './news-collection.js';
+import {getEditionForDate, readEditionPage, handleEditionPublish} from './edition-store.js';
 import {handleNeuralAudio} from './neural-audio.js';
 import { SOURCES, COLLECTION_SETTINGS } from '../.generated/source-data.js';
-const APP_RELEASE = '0.1.8';
+const APP_RELEASE = '0.1.9';
 export {safeUrl} from './source-registry.js';
 export function parseSource(source, body) {
   return readSource(source, body).items;
 }
-export default {async fetch(request,env,ctx){const url=new URL(request.url);if(url.pathname==='/api/audio'||url.pathname==='/api/audio/status')return handleNeuralAudio(request,env,EDITIONS);if(url.pathname==='/api/version')return Response.json({version:APP_RELEASE},{headers:{'Cache-Control':'private, no-store'}});if(url.pathname==='/api/editions')return Response.json({editions:EDITIONS,publication_mode:'editorial_snapshot',automatic_publication:false},{headers:{'Cache-Control':'private, no-store'}});if(url.pathname==='/api/inbox') {return Response.json(await collectNews(SOURCES, {settings: COLLECTION_SETTINGS}),{headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}})}
+const privateHeaders = {'Cache-Control':'private, no-store'};
+async function findEdition(env, id) {
+  if (typeof id !== 'string') return null;
+  const bundled = EDITIONS.find(edition => edition.id === id);
+  if (bundled) return bundled;
+  const parts = /^(\d{4}-\d{2}-\d{2})-(morning|evening)(?:-|$)/.exec(id);
+  if (!parts) return null;
+  const edition = await getEditionForDate(env, EDITIONS, parts[1], parts[2]);
+  return edition?.id === id ? edition : null;
+}
+
+async function listEditions(url, env) {
+  try {
+    const date = url.searchParams.get('date');
+    const slot = url.searchParams.get('edition');
+    let page;
+    if (date !== null || slot !== null) {
+      const edition = await getEditionForDate(env, EDITIONS, date, slot);
+      page = {editions:edition ? [edition] : [], next_before:null};
+    } else {
+      page = await readEditionPage(env, EDITIONS, {before:url.searchParams.get('before')});
+      page.editions.sort((a,b) => Date.parse(a.published_at) - Date.parse(b.published_at));
+    }
+    return Response.json({...page, publication_mode:env?.EDITION_BUCKET?'edition_store':'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
+  } catch (error) {
+    return Response.json({error:error.code || 'edition_store_unavailable'}, {status:error.status || 503, headers:privateHeaders});
+  }
+}
+
+export default {async fetch(request,env,ctx){const url=new URL(request.url);
+if(url.pathname==='/api/audio'||url.pathname==='/api/audio/status')return handleNeuralAudio(request,env,id=>findEdition(env,id));
+if(url.pathname==='/api/version')return Response.json({version:APP_RELEASE},{headers:privateHeaders});
+if(url.pathname==='/api/editions/publish')return handleEditionPublish(request,env,EDITIONS);
+if(url.pathname==='/api/editions')return listEditions(url,env);
+if(url.pathname==='/api/inbox') {return Response.json(await collectNews(SOURCES, {settings: COLLECTION_SETTINGS}),{headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}})}
 if(url.pathname==='/manifest.webmanifest')return Response.json({name:'News Station 新聞工作站',short_name:'News Station',lang:'zh-TW',start_url:'/',display:'standalone',background_color:'#f7f7f2',theme_color:'#163f3b',icons:[{src:'/icon.svg',sizes:'any',type:'image/svg+xml',purpose:'any'}]});
 if(url.pathname==='/icon.svg')return new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#163f3b"/><text x="64" y="88" font-size="78" font-family="serif" text-anchor="middle" fill="#f3efdf">N</text><circle cx="101" cy="27" r="9" fill="#e78261"/></svg>',{headers:{'Content-Type':'image/svg+xml'}});
 if(url.pathname==='/sw.js')return new Response(SERVICE_WORKER,{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store, max-age=0','Service-Worker-Allowed':'/'}});

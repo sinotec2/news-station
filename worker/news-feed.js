@@ -87,6 +87,10 @@ export function readSource(source, body, {address = source.home, category = null
       guid: item.cveID, title: item.cveID + ' · ' + item.vulnerabilityName,
       url: 'https://www.cve.org/CVERecord?id=' + encodeURIComponent(item.cveID),
       date: timestamp(item.dateAdded), excerpt: clean(item.shortDescription).slice(0, excerptLimit),
+      catalogue_record: {
+        url: address, cve: item.cveID, vendor: item.vendorProject, product: item.product,
+        added: item.dateAdded, due: item.dueDate, required_action: item.requiredAction,
+      },
     })).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
   } else if (source.type === 'moenv') {
     format = 'HTML';

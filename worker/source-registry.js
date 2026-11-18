@@ -45,9 +45,12 @@ export function loadSourceRegistry(registry, {trialIds = []} = {}) {
     if (!sourceHome || !endpoints.length || endpoints.some(endpoint => !endpoint.url)) {
       throw Error('Source requires an HTTPS homepage and collection entry: ' + id);
     }
+    const alternate = registry.x_pipeline_proposal?.publisher_mirrors?.[id];
+    if (alternate !== undefined && !safeUrl(alternate)) throw Error('Publisher mirror requires an HTTPS URL: ' + id);
     sources.push({
       id, name, topic, region: region ?? null, type, home: sourceHome, endpoints,
       allowPagination: entry.allow_pagination === true,
+      ...(alternate ? {publisherMirror: safeUrl(alternate)} : {}),
     });
   }
   return trialIds.length ? sources.filter(source => trialIds.includes(source.id)) : sources;

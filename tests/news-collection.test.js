@@ -116,3 +116,24 @@ test('visits all configured categories before sampling and counts HTTPS redirect
   assert.deepEqual(result.items.map(item => item.category), ['最新','財經']);
   assert.equal(result.sources[0].candidate_limit_reached, true);
 });
+
+test('the configured publisher mirror is fetched only after failure within the original request budget', async () => {
+  const primary = 'https://catalog.example/kev.json';
+  const mirror = 'https://mirror.example/kev.json';
+  const source = {id: 'cisa', name: 'Catalog', topic: '資安', type: 'cisa', home: 'https://catalog.example/',
+    endpoints: [{url: primary}], publisherMirror: mirror};
+  const data = {vulnerabilities: [{cveID: 'CVE-2026-10000', vulnerabilityName: 'Catalog entry',
+    vendorProject: 'Example', product: 'Service', dateAdded: '2026-11-17', dueDate: '2026-12-01'}]};
+  const fetcher = async url => url === primary ? new Response(null, {status: 403}) : Response.json(data);
+  const recovered = await collectNews([source], {fetcher});
+  assert.equal(recovered.collection.requests, 2);
+  assert.equal(recovered.sources[0].pages[0].http, 403);
+  assert.equal(recovered.sources[0].pages[1].publisher_mirror, true);
+  assert.equal(recovered.items[0].catalogue_record.url, mirror);
+  const limited = await collectNews([source], {fetcher, settings: {max_http_requests: 1}});
+  assert.equal(limited.collection.requests, 1);
+  assert.equal(limited.items.length, 0);
+  const healthy = await collectNews([source], {fetcher: async () => Response.json(data)});
+  assert.equal(healthy.collection.requests, 1);
+  assert.equal(healthy.items[0].catalogue_record.url, primary);
+});

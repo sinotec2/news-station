@@ -19,7 +19,8 @@ test('the bundled inbox fetches URLs from the YAML registry and reports upstream
  try {
   const response = await deployedWorker.fetch(new Request('https://station.test/api/inbox'));
   const data = await response.json();
-  assert.deepEqual(fetchedUrls, active.map(source => new URL(source.url).href));
+  const expectedUrls = active.flatMap(source => [source.url, registry.x_pipeline_proposal.publisher_mirrors?.[source.source_id]].filter(Boolean));
+  assert.deepEqual(fetchedUrls.toSorted(), expectedUrls.map(url => new URL(url).href).sort());
   assert.deepEqual(data.sources.map(source => source.source), active.map(source => source.name));
   assert.deepEqual(data.items, []);
   assert.ok(data.sources.every(source => !source.ok && source.error === 'HTTP 503'));
@@ -27,4 +28,4 @@ test('the bundled inbox fetches URLs from the YAML registry and reports upstream
   globalThis.fetch = originalFetch;
  }
 });
-test('restricted Workers default cache must never be accessed',async()=>{const previousFetch=globalThis.fetch;const previousCaches=Object.getOwnPropertyDescriptor(globalThis,'caches');let calls=0;globalThis.fetch=async()=>{calls++;return new Response('unavailable',{status:503})};Object.defineProperty(globalThis,'caches',{configurable:true,value:{get default(){throw Error('This Worker is not permitted to access the default cache.')}}});try{for(let i=0;i<2;i++){const r=await worker.fetch(new Request('https://station.test/api/inbox'));assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'private, no-store');const data=await r.json();assert.equal(data.sources.length,6);assert.ok(data.sources.every(s=>s.ok===false))}assert.equal(calls,12)}finally{globalThis.fetch=previousFetch;if(previousCaches)Object.defineProperty(globalThis,'caches',previousCaches);else delete globalThis.caches}});
+test('restricted Workers default cache must never be accessed',async()=>{const previousFetch=globalThis.fetch;const previousCaches=Object.getOwnPropertyDescriptor(globalThis,'caches');let calls=0;globalThis.fetch=async()=>{calls++;return new Response('unavailable',{status:503})};Object.defineProperty(globalThis,'caches',{configurable:true,value:{get default(){throw Error('This Worker is not permitted to access the default cache.')}}});try{for(let i=0;i<2;i++){const r=await worker.fetch(new Request('https://station.test/api/inbox'));assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'private, no-store');const data=await r.json();assert.equal(data.sources.length,6);assert.ok(data.sources.every(s=>s.ok===false))}assert.equal(calls,14)}finally{globalThis.fetch=previousFetch;if(previousCaches)Object.defineProperty(globalThis,'caches',previousCaches);else delete globalThis.caches}});

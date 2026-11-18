@@ -246,6 +246,9 @@ x_news_station_draft:
   selection_date: "2026-11-18"
   timezone: Asia/Taipei
 x_pipeline_proposal:
+  # CISA's own mirror. Used only after its canonical catalog cannot be retrieved.
+  publisher_mirrors:
+    cisa: https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json
   max_supplement_rounds: 3
   max_extra_pages_per_source: 3
   max_candidates_per_source: 100

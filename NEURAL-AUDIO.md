@@ -2,7 +2,7 @@
 
 ## Cedar 播音流程
 
-News Station 透過 Sites 的 OPENAI_API_KEY 連接 OpenAI Realtime。每則新聞使用獨立連線，服務確認 Cedar 後逐篇合成。後端核對口播稿，再傳回 WAV 給播放器。公司 LuniHub 的整合仍待實作。
+News Station 透過 Sites 的 OPENAI_API_KEY 連接 OpenAI Realtime。整期開場會念出期刊日期、晨晚報別與總篇數，每則報號，最後一則附上結語。單篇播放使用原口播稿。播放器確認目前這則已開始播放後才預備下一則，最多一則在等待，長靜音只修剪頭尾。連線確認 Cedar 後合成。後端核對口播稿，再傳回 WAV 給播放器。公司 LuniHub 的整合仍待實作。
 
 官方於 2026-10-01 公告舊 Speech API 模型將在 2027-01-06 停用，新接入依目前文件使用 gpt-realtime-2.1-mini / Realtime API；不能把這個模型名稱直接填到 /v1/audio/speech。
 

@@ -1,4 +1,11 @@
 dist/
 node_modules/
-
 .generated/
+.wrangler/
+.sites-runtime/
+outputs/
+.env*
+*.env
+*.env.*
+.dev.vars*
+!/.env.example

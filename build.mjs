@@ -1,9 +1,18 @@
-import {mkdir,readFile,writeFile,copyFile} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {parse} from 'yaml';
 import {build} from 'esbuild';
 import {validateBriefing} from './worker/editorial.js';
 import {loadSourceRegistry} from './worker/source-registry.js';
 import {collectionLimits} from './worker/news-collection.js';
+// A checkout used for local reading may have no Sites identity.
+const builtManifest='dist/.openai/hosting.json';
+await rm(builtManifest,{force:true});
+const manifestText=await readFile('.openai/hosting.json','utf8').catch(error=>{
+  if(error.code==='ENOENT')return '';
+  throw error;
+});
+const siteManifest=manifestText.trim()?JSON.parse(manifestText):{};
+if(!siteManifest||typeof siteManifest!=='object'||Array.isArray(siteManifest))throw Error('Invalid Sites hosting manifest');
 const editions=JSON.parse(await readFile('content/editions.json','utf8'));
 for(const edition of editions)validateBriefing(edition);
 const registry = parse(await readFile('SOURCE-REGISTRY.yaml', 'utf8'), {maxAliasCount: 0});
@@ -25,6 +34,8 @@ await build({
   platform: 'browser',
   outfile: 'dist/server/index.js',
 });
-await mkdir('dist/.openai',{recursive:true});
-await copyFile('.openai/hosting.json','dist/.openai/hosting.json');
+if(typeof siteManifest.project_id==='string'&&siteManifest.project_id.trim()){
+  await mkdir('dist/.openai',{recursive:true});
+  await writeFile(builtManifest,manifestText);
+}
 console.log(`Built ${editions.length} edition(s), ${sources.length} source(s), and client with validated scripts.`);

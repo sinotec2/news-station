@@ -170,6 +170,7 @@ export async function collectNews(sources, {fetcher = fetch, settings = {}, dead
     if (budgetStop()) return;
     const {source, report} = state;
     const page = {requested_url: entry.url, category: entry.category, collected_at: new Date().toISOString()};
+    if (entry.publisherMirror) page.publisher_mirror = true;
     try {
       let address = entry.url;
       let response;
@@ -239,6 +240,9 @@ export async function collectNews(sources, {fetcher = fetch, settings = {}, dead
           if (budgetStop() || (supplement && state.items.length >= limits.max_candidates_per_source)) break;
           if (supplement) state.extra++;
           await retrieve(state, entry);
+        }
+        if (!supplement && !state.report.ok && state.source.publisherMirror && !budgetStop()) {
+          await retrieve(state, {url: state.source.publisherMirror, category: null, publisherMirror: true});
         }
         state.items = sampleAcrossCategories(state.batches, limits.max_candidates_per_source);
       }
