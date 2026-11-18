@@ -72,19 +72,19 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.7');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.8');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.7');
+ assert.equal((await version.json()).version,'0.1.8');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.7'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.8'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.7']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.8']);
 });
 
 test('home opens the most recent published edition and preserves a reader’s manual switch',async()=>{
@@ -153,6 +153,10 @@ test('published playback uses the configured voice for the issue and story, adva
  deliverTrack(wav());await settle();
  assert.equal(h.node('#neural-player').hidden,true);
  assert.equal(audio.onended,null);
+ click({neural:'0'});await settle();
+ assert.equal(requests.length,2);
+ assert.match(h.node('#neural-state').textContent,/分頁暫存重播/);
+ click({action:'neural-stop'});
  vm.runInContext('openItem(1)',h.context);
  assert.match(detail.innerHTML,/class="primary" data-neural="1">▷ Cedar/);
  assert.match(detail.innerHTML,/data-speak="1">▷ 裝置朗讀/);
@@ -164,6 +168,65 @@ test('published playback uses the configured voice for the issue and story, adva
  click({neural:'1'});deliverTrack(wav('marin'));await settle();
  assert.match(h.node('#neural-state').textContent,/指定音色不符/);
  assert.equal(h.said.length,0);
+ click({neural:'1'});deliverTrack(wav());await settle();
+ assert.equal(requests.length,5);
+ audio.onerror();click({neural:'1'});deliverTrack(wav());await settle();
+ assert.equal(requests.length,6,'a decoding error evicts the clip');
+ vm.runInContext("current().articles[1].speech_script+='更新。'",h.context);
+ click({neural:'1'});deliverTrack(wav());await settle();
+ assert.equal(requests.length,7,'a corrected script must be regenerated');
+ const later=Date.now()+61000;
+ h.context.Date=class extends Date{static now(){return later}};
+ click({neural:'0'});deliverTrack(wav());await settle();
+ assert.equal(requests.length,8,'expired clips must be regenerated');
+ assert.match(h.node('#neural-state').textContent,/已到期/);
  click({speak:'1'});
  assert.equal(h.said.length,1);
+});
+
+test('an issue skips only an unfaithful narration, retains its title at completion and stops on provider failure',async()=>{
+ const edition={...editions.at(-1),articles:editions.at(-1).articles.slice(0,3)};
+ const h=clientHarness([edition]);
+ const ids=[];
+ let played=0;
+ let problem='narration_mismatch';
+ const audio=h.node('#neural-audio');
+ Object.assign(audio,{play:async()=>{played++},pause(){},load(){},removeAttribute(){}});
+ h.context.fetch=async(path,options)=>{
+  if(path==='/api/editions')return Response.json({editions:[edition]});
+  if(path==='/api/audio/status')return Response.json({ready:true,voice:'cedar'});
+  const id=JSON.parse(options.body).article_id;ids.push(id);
+  if(id===edition.articles[1].id)return Response.json({error:problem},{status:502});
+  return new Response(new Uint8Array(48),{headers:{'Content-Type':'audio/wav','X-Audio-Voice':'cedar','X-Audio-Expires-At':String(Date.now()+60000)}});
+ };
+ const settle=()=>new Promise(resolve=>setImmediate(resolve));
+ const click=dataset=>h.handlers.get('click')({target:{closest:()=>({dataset})}});
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await settle();
+ click({action:'neural-play'});await settle();
+ assert.equal(played,1);
+ audio.onended();await settle();
+ assert.deepEqual(ids,edition.articles.map(a=>a.id));
+ assert.equal(played,2);
+ audio.onended();
+ assert.match(h.node('#neural-state').textContent,/已播完 2 則。1 則/);
+ assert.ok(h.node('#neural-state').textContent.includes(edition.articles[1].title));
+ click({neural:'1'});await settle();
+ assert.match(h.node('#neural-state').textContent,/口播稿不一致/);
+ assert.equal(played,2);
+ problem='provider_quota_exceeded';
+ click({action:'neural-play'});await settle();
+ assert.equal(played,3);
+ audio.onended();await settle();
+ assert.equal(played,3);
+ assert.equal(ids.length,5);
+ assert.match(h.node('#neural-state').textContent,/額度/);
+});
+
+test('tab cache evicts least-recently-used audio within its byte budget',async()=>{
+ const h=clientHarness();
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);
+ vm.runInContext(`const clip={expires:Date.now()+60000,blob:{size:RECENT_AUDIO_LIMIT/3}};
+  for(const key of ['one','two','three','one','four'])rememberAudioClip(key,clip);
+  rememberAudioClip('too large',{...clip,blob:{size:RECENT_AUDIO_LIMIT+1}});`,h.context);
+ assert.deepEqual(Array.from(vm.runInContext('recentAudio.keys()',h.context)),['three','one','four']);
 });

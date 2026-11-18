@@ -1,4 +1,4 @@
-const APP_RELEASE='0.1.7';
+const APP_RELEASE='0.1.8';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeLink = s => {try {const u=new URL(s);return u.protocol==='https:'?u.href:null}catch{return null}};
@@ -83,14 +83,14 @@ function renderSources(){
  $('#body').innerHTML=sourceRefreshButton()+(state.error?'<div class="notice">'+esc(state.error)+'</div>':'')+state.sources.map(s=>'<div class="source-row"><span class="badge">'+esc(s.topic)+'</span> <a href="'+esc(safeLink(s.home)||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(s.source)+' ↗</a><small>'+(s.ok?'● '+esc(s.candidates ?? 0)+' 則候選 · '+esc(s.unique_events ?? 0)+' 個事件':'○ 擷取失敗：'+esc(s.error || '已達本輪上限'))+' · '+date(s.checked_at)+'（台北）</small></div>').join('')+'<p class="footer-note">重新擷取會更新來源工作區的待選稿素材。晨晚報在編輯與查證完成後另行發布。</p>';
 }
 function speedOptions(){return [0.8,1,1.25,1.5].map(n=>'<option value="'+n+'" '+(player.speed===n?'selected':'')+'>'+n+'×</option>').join('')}
-function renderSettings(){ $('#body').innerHTML='<div class="settings"><div class="ribbon"><span class="symbol">▤</span><div><strong>繁中編輯版已開放</strong><p>先選稿、寫重點、核對來源，再編寫適合聆聽的口播稿。</p></div></div><h2>AI 語音播報</h2><p>'+esc(voiceNote())+'</p>'+editionVoiceButton(current())+'<p>首次產生音訊會使用網站金鑰所屬專案的 OpenAI API 額度。</p><h2>裝置語音（試用）</h2><p>已發布新聞可直接播放，不需要先開啟文章或逐則確認。</p><p>首頁選擇期刊後可聽整期，新聞卡片可聽單則。只讀編輯過的口播稿，不照念 Markdown、網址或 commit 編號。</p><div class="player"><button class="secondary" data-action="speak">▶ 用裝置朗讀本期</button><button data-action="pause">暫停／繼續</button><button data-action="stop">停止</button><label>倍速 <select data-speed>'+speedOptions()+'</select></label><span class="player-label" data-player-status></span></div><p>使用裝置內建語音。背景、鎖屏及精準續播仍須真機驗證；目前沒有 MP3。會記住每則口播的句段位置，下次按播放可從該段開始。</p><h2>裝置資料</h2><p>收藏與已讀儲存在這個瀏覽器，清除網站資料後會移除；編輯版新聞由伺服器提供，不需自行匯入。</p><button class="secondary" data-action="export">匯出個人備份</button><p>還原個人備份（會取代本機收藏與閱讀狀態）</p><input type="file" id="restore" accept="application/json,.json"><details><summary>進階：匯入自行編輯的期刊</summary><p>匯入須有繁中標題、三至五項事實與逐項證據、AI 判讀、限制、口播稿。格式檢查不代表獨立查證。</p><button class="secondary" data-action="template">下載本期作為格式參考</button><input type="file" id="import" accept="application/json,.json"></details><h2>在 iPhone 加入主畫面</h2><p>Safari → 分享 → 加入主畫面。私人網站需要登入；目前不提供離線新聞。</p><h2>更新方式</h2><p>目前頁面版本：'+APP_RELEASE+' · <button class="secondary" data-action="reload-app">取得最新頁面</button></p><p>目前是編輯試刊，每份保留實際出版時間與資料截止時間。自動選稿摘要模型與每日出版排程尚未接通；舊一期會保留原日期，不會改標成今日新聞。</p></div>';updatePlayer() }
+function renderSettings(){ $('#body').innerHTML='<div class="settings"><div class="ribbon"><span class="symbol">▤</span><div><strong>繁中編輯版已開放</strong><p>先選稿、寫重點、核對來源，再編寫適合聆聽的口播稿。</p></div></div><h2>AI 語音播報</h2><p>'+esc(voiceNote())+'</p>'+editionVoiceButton(current())+'<p>產生音訊會使用網站金鑰所屬專案的 OpenAI API 額度。同一分頁會暫存最近播放的音訊，仍在暫存內時，重播可直接播放。</p><h2>裝置語音（試用）</h2><p>已發布新聞可直接播放，不需要先開啟文章或逐則確認。</p><p>首頁選擇期刊後可聽整期，新聞卡片可聽單則。只讀編輯過的口播稿，不照念 Markdown、網址或 commit 編號。</p><div class="player"><button class="secondary" data-action="speak">▶ 用裝置朗讀本期</button><button data-action="pause">暫停／繼續</button><button data-action="stop">停止</button><label>倍速 <select data-speed>'+speedOptions()+'</select></label><span class="player-label" data-player-status></span></div><p>使用裝置內建語音。背景、鎖屏及精準續播仍須真機驗證；目前沒有 MP3。會記住每則口播的句段位置，下次按播放可從該段開始。</p><h2>裝置資料</h2><p>收藏與已讀儲存在這個瀏覽器，清除網站資料後會移除；編輯版新聞由伺服器提供，不需自行匯入。</p><button class="secondary" data-action="export">匯出個人備份</button><p>還原個人備份（會取代本機收藏與閱讀狀態）</p><input type="file" id="restore" accept="application/json,.json"><details><summary>進階：匯入自行編輯的期刊</summary><p>匯入須有繁中標題、三至五項事實與逐項證據、AI 判讀、限制、口播稿。格式檢查不代表獨立查證。</p><button class="secondary" data-action="template">下載本期作為格式參考</button><input type="file" id="import" accept="application/json,.json"></details><h2>在 iPhone 加入主畫面</h2><p>Safari → 分享 → 加入主畫面。私人網站需要登入；目前不提供離線新聞。</p><h2>更新方式</h2><p>目前頁面版本：'+APP_RELEASE+' · <button class="secondary" data-action="reload-app">取得最新頁面</button></p><p>目前是編輯試刊，每份保留實際出版時間與資料截止時間。自動選稿摘要模型與每日出版排程尚未接通；舊一期會保留原日期，不會改標成今日新聞。</p></div>';updatePlayer() }
 async function loadSources(){if(state.loading)return;state.loading=true;state.error='';render();try{const r=await fetch('/api/inbox');if(!r.ok)throw Error('服務回應 '+r.status);const data=await r.json();state.items=data.items;state.sources=data.sources;state.collectedAt=data.collected_at}catch(e){state.error='無法取得來源：'+e.message}finally{state.loading=false;render()}}
 async function loadEditions(){state.publicationLoading=true;state.publicationError='';try{const r=await fetch('/api/editions',{cache:'no-store'});if(!r.ok)throw Error('服務回應 '+r.status);const data=await r.json();state.published=data.editions;if(!Array.isArray(state.published))throw Error('期刊資料格式錯誤');if(!state.editionPicked){const latest=state.published.filter(e=>Date.parse(e.published_at)<=Date.now()).sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at))[0];if(latest)state.edition=latest.edition}}catch(e){state.published=[];state.publicationError='編輯版讀取失敗：'+e.message}finally{state.publicationLoading=false;render()}}
 function openItem(i){const r=items()[i];if(!r)return;const edited=isEdited(r);const next=[...new Set([...state.read,r.id])];if(write('read',next))state.read=next;
  $('#detail').innerHTML='<button class="close" data-action="close" aria-label="關閉">×</button><span class="badge">'+esc(r.topic)+'</span><h2>'+esc(r.title)+'</h2><div class="meta">'+esc(r.source)+' · '+esc(sourceDate(r))+'</div>'+(edited?'<p>'+esc(r.excerpt)+'</p><h3>發生什麼</h3><ol>'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ol><div class="why"><b>為何重要 · AI 判讀</b>'+esc(r.analysis)+'</div><h3>仍須留意</h3><p>'+esc(r.uncertainty)+'</p>'+articleVoiceButtons(r,i,true)+'<h3>逐項來源核對</h3>'+r.evidence.map((e,j)=>'<div class="evidence-row"><strong>事實 '+(e.fact?r.facts.indexOf(e.fact)+1:j+1)+'</strong> · '+esc(e.support)+'<br><a href="'+esc(safeLink(e.url)||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(new URL(e.url).hostname)+' ↗</a></div>').join('')+'<p class="label">'+(r.verification_status==='official_statement'?'核對官方公告的內容，沒有把廠商或政府宣稱當成獨立證實。':r.verification_status==='attributed_report'?'已查閱具名媒體原文，事實仍以該報導歸屬為準。':'已比對多個來源；仍須留意來源是否相互獨立。')+'<br>核對時間：'+date(r.verified_at,true)+'（台北）</p><details><summary>為何入選／更正紀錄</summary><p>'+esc(r.selection_reason)+'</p><p>'+(r.correction_history?.length?esc(JSON.stringify(r.correction_history)):'尚無更正紀錄。')+'</p></details>':'<p class="notice">'+esc(r.reason||'這是尚未編輯的原始素材，不是正式新聞。')+'</p><p>請先查閱原始來源。此素材尚未有繁中摘要與口播稿。</p><details><summary>展開原始摘錄（未編輯）</summary><div class="raw">'+esc(r.excerpt||'來源未提供摘錄。')+'</div></details>')+'<h3>原始來源</h3>'+[...new Set(r.source_urls||r.evidence_candidates?.map(e=>e.url)||[r.url])].filter(safeLink).map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(new URL(u).hostname)+' ↗</a><br>').join('');
  $('#detail').showModal();drawList();
 }
-const cloud={loading:true,ready:false,voice:'',error:'',active:false,pending:false,articles:[],editionId:'',index:0,token:0,objectUrl:null,expires:0,cleanupTimer:null,controller:null};
+const cloud={loading:true,ready:false,voice:'',error:'',active:false,pending:false,articles:[],skipped:[],editionId:'',index:0,token:0,objectUrl:null,expires:0,cleanupTimer:null,controller:null};
 async function loadNeuralStatus(){
  try{
   const response=await fetch('/api/audio/status',{cache:'no-store'});
@@ -102,48 +102,95 @@ async function loadNeuralStatus(){
  }catch{cloud.error='無法取得 AI 播音設定，可使用裝置朗讀。'}
  finally{cloud.loading=false;render()}
 }
-function stopNeuralPlayback(){
- cloud.token++;cloud.active=false;cloud.pending=false;cloud.controller?.abort();cloud.controller=null;
+function detachNeuralTrack(){
  const node=$('#neural-audio');
  node.onended=node.onerror=node.ontimeupdate=node.onloadedmetadata=node.onpause=node.onplaying=null;
  if(node.pause)node.pause();
  if(cloud.objectUrl){node.removeAttribute('src');node.load();URL.revokeObjectURL(cloud.objectUrl);cloud.objectUrl=null}
- clearTimeout(cloud.cleanupTimer);$('#neural-player').hidden=true;updatePlayer();
+ clearTimeout(cloud.cleanupTimer);
+}
+function stopNeuralPlayback(){
+ cloud.token++;cloud.active=false;cloud.pending=false;cloud.controller?.abort();cloud.controller=null;
+ detachNeuralTrack();$('#neural-player').hidden=true;updatePlayer();
 }
 async function startNeuralPlayback(articles,editionId){
  if(!cloud.ready)return toast('公司 AI 語音尚未接通，需要先設定後端 API 金鑰');
  if(cloud.pending)return toast('音訊正在準備中，請稍候');
- stopSpeech();stopNeuralPlayback();cloud.active=true;cloud.articles=articles.filter(isEdited);cloud.editionId=editionId;cloud.index=0;if(!cloud.articles.length){cloud.active=false;return toast('沒有可播放的口播稿')}
+ stopSpeech();stopNeuralPlayback();cloud.active=true;cloud.articles=articles.filter(isEdited);cloud.skipped=[];cloud.editionId=editionId;cloud.index=0;if(!cloud.articles.length){cloud.active=false;return toast('沒有可播放的口播稿')}
  await playNeuralTrack(cloud.token);
+}
+// Blobs live only in this tab. Map order tracks the most recently played clips.
+const recentAudio=new Map();
+const RECENT_AUDIO_LIMIT=24*1024*1024;
+function rememberAudioClip(key,clip){
+ recentAudio.delete(key);
+ if(clip.blob.size>RECENT_AUDIO_LIMIT||clip.expires<=Date.now())return;
+ recentAudio.set(key,clip);
+ let bytes=0;
+ for(const {blob} of recentAudio.values())bytes+=blob.size;
+ for(const [oldKey,oldClip] of recentAudio){
+  if(bytes<=RECENT_AUDIO_LIMIT&&recentAudio.size<=64)break;
+  recentAudio.delete(oldKey);bytes-=oldClip.blob.size;
+ }
+}
+async function fetchAudioClip(editionId,articleId,signal){
+  const response=await fetch('/api/audio',{method:'POST',signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({edition_id:editionId,article_id:articleId})});
+  if(!response.ok){const problem=await response.json().catch(()=>({}));const messages={not_configured:'網站尚未設定 OpenAI API 金鑰',provider_auth_failed:'OpenAI 拒絕了網站的 API 金鑰，請檢查金鑰狀態',provider_voice_unconfirmed:'OpenAI 未確認指定音色，請稍後再播',provider_quota_exceeded:'OpenAI API 額度或速率不足',provider_rate_limited:'OpenAI API 暫時達到速率上限，請稍後再播',provider_model_unavailable:'網站的 API 專案目前無法使用這個語音模型',model_not_found:'網站的 API 專案目前無法使用這個語音模型',provider_connection_failed:'網站暫時無法連上 OpenAI 語音服務',narration_mismatch:'生成語音與口播稿不一致，已停止播放，請重新檢查',provider_timeout:'語音生成逾時，請稍後再試',article_not_published:'這則稿件沒有伺服器語音版本'};const error=Error(messages[problem.error]||'AI 語音生成失敗，請稍後重試');error.code=problem.error;throw error}
+  const responseVoice=response.headers.get('X-Audio-Voice');
+  if(responseVoice?.toLowerCase()!==cloud.voice.toLowerCase())throw Error('回傳的音色與指定音色不符，請重新整理後再播');
+  const blob=await response.blob();
+  if(!blob.size||!blob.type.startsWith('audio/'))throw Error('收到的資料無法播放，請再試一次');
+  const expires=Number(response.headers.get('X-Audio-Expires-At'));if(!Number.isFinite(expires)||expires<=Date.now())throw Error('音訊已到期，請重新生成');
+  return {blob,expires};
 }
 async function playNeuralTrack(token){
  if(token!==cloud.token||!cloud.active)return;
- const article=cloud.articles[cloud.index];if(!article){cloud.active=false;$('#neural-state').textContent='播報完畢';updatePlayer();return}
+ const article=cloud.articles[cloud.index];
+ if(!article){
+  cloud.active=false;
+  const skipped=cloud.skipped;
+  $('#neural-state').textContent=skipped.length?'已播完 '+(cloud.articles.length-skipped.length)+' 則。'+skipped.length+' 則因口播與稿件不符略過：'+skipped.join('、'):'播報完畢';
+  updatePlayer();return;
+ }
  const edition=publishedEditionFor(article,cloud.editionId);
  if(!edition){cloud.active=false;return toast('這則是本機內容，尚未加入伺服器的語音稿')}
+ if(cloud.objectUrl)detachNeuralTrack();
  const node=$('#neural-audio');$('#neural-player').hidden=false;$('#neural-title').textContent=cloud.voice+' · '+article.title;$('#neural-state').textContent='正在準備音訊…';cloud.pending=true;
+ const publishedArticle=edition.articles.find(entry=>entry.id===article.id);
+ const cacheKey=JSON.stringify([edition.id,article.id,publishedArticle.speech_script,publishedArticle.verified_at,publishedArticle.correction_history,cloud.voice]);
+ for(const [key,clip] of recentAudio){if(clip.expires<=Date.now())recentAudio.delete(key)}
+ let advance=false;
  cloud.controller=new AbortController();updatePlayer();
  try{
-  const response=await fetch('/api/audio',{method:'POST',signal:cloud.controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({edition_id:edition.id,article_id:article.id})});
-  if(!response.ok){const problem=await response.json().catch(()=>({}));const messages={not_configured:'網站尚未設定 OpenAI API 金鑰',provider_auth_failed:'OpenAI 拒絕了網站的 API 金鑰，請檢查金鑰狀態',provider_voice_unconfirmed:'OpenAI 未確認指定音色，請稍後再播',provider_quota_exceeded:'OpenAI API 額度或速率不足',provider_rate_limited:'OpenAI API 暫時達到速率上限，請稍後再播',provider_model_unavailable:'網站的 API 專案目前無法使用這個語音模型',model_not_found:'網站的 API 專案目前無法使用這個語音模型',provider_connection_failed:'網站暫時無法連上 OpenAI 語音服務',narration_mismatch:'生成語音與口播稿不一致，已停止播放，請重新檢查',provider_timeout:'語音生成逾時，請稍後再試',article_not_published:'這則稿件沒有伺服器語音版本'};throw Error(messages[problem.error]||'AI 語音生成失敗，請稍後重試')}
-  const responseVoice=response.headers.get('X-Audio-Voice');
-  if(responseVoice?.toLowerCase()!==cloud.voice.toLowerCase())throw Error('回傳的音色與指定音色不符，請重新整理後再播');
-  const blob=await response.blob();if(token!==cloud.token)return;
-  if(!blob.size||!blob.type.startsWith('audio/'))throw Error('收到的資料無法播放，請再試一次');
-  const expires=Number(response.headers.get('X-Audio-Expires-At'));if(!Number.isFinite(expires)||expires<=Date.now())throw Error('音訊已到期，請重新生成');
-  if(cloud.objectUrl)URL.revokeObjectURL(cloud.objectUrl);clearTimeout(cloud.cleanupTimer);
+  const cached=recentAudio.get(cacheKey);
+  let clip=cached;
+  if(!clip){
+   clip=await fetchAudioClip(edition.id,article.id,cloud.controller.signal);
+   if(token!==cloud.token)return;
+  }
+  rememberAudioClip(cacheKey,clip);
+  const {blob,expires}=clip;
   cloud.objectUrl=URL.createObjectURL(blob);cloud.expires=expires;node.src=cloud.objectUrl;node.playbackRate=player.speed;
   const progressKey='neural-position:'+cloud.voice+':'+article.id+':'+article.verified_at;
   node.onloadedmetadata=()=>{const saved=Number(read(progressKey,0));if(Number.isFinite(saved)&&saved>0&&saved<node.duration)node.currentTime=saved};
   node.ontimeupdate=()=>{if(Date.now()>=cloud.expires){stopNeuralPlayback();return toast('音訊已到期')}write(progressKey,node.currentTime)};
   node.onended=()=>{if(token!==cloud.token||!cloud.active)return;node.onended=null;write(progressKey,0);cloud.index++;playNeuralTrack(token)};
   node.onplaying=node.onpause=updatePlayer;
-  node.onerror=()=>{cloud.active=false;$('#neural-state').textContent='音訊無法播放，請重試或閱讀文字'};
+  node.onerror=()=>{recentAudio.delete(cacheKey);cloud.active=false;$('#neural-state').textContent='音訊無法播放，請重試或閱讀文字';updatePlayer()};
   cloud.cleanupTimer=setTimeout(()=>{if(token===cloud.token)stopNeuralPlayback()},Math.min(expires-Date.now(),72*60*60*1000));
-  $('#neural-state').textContent=cloud.voice+' AI 合成語音 · '+(cloud.index+1)+' / '+cloud.articles.length+' 則';
+  $('#neural-state').textContent=cloud.voice+' AI 合成語音 · '+(cloud.index+1)+' / '+cloud.articles.length+' 則'+(cached?' · 分頁暫存重播':'');
   if('mediaSession' in navigator&&typeof MediaMetadata!=='undefined'){navigator.mediaSession.metadata=new MediaMetadata({title:article.title,artist:'News Station · '+cloud.voice+' 合成語音'});try{navigator.mediaSession.setActionHandler('play',()=>node.play());navigator.mediaSession.setActionHandler('pause',()=>node.pause());navigator.mediaSession.setActionHandler('seekto',event=>{if(Number.isFinite(event.seekTime))node.currentTime=event.seekTime})}catch{}}
   try{await node.play()}catch{$('#neural-state').textContent='音訊已準備好，請按播放器的播放鍵'}
- }catch(error){if(token===cloud.token){cloud.active=false;$('#neural-state').textContent=error.message;toast(error.message)}}finally{if(token===cloud.token){cloud.pending=false;cloud.controller=null;updatePlayer()}}
+ }catch(error){
+  if(token!==cloud.token)return;
+  if(error.code==='narration_mismatch'&&cloud.articles.length>1){
+   cloud.skipped.push(article.title);cloud.index++;advance=true;
+   toast('口播與稿件不符，略過〈'+article.title+'〉');
+  }else{
+   cloud.active=false;$('#neural-state').textContent=error.message;toast(error.message);
+  }
+ }finally{if(token===cloud.token){cloud.pending=false;cloud.controller=null;updatePlayer()}}
+ if(advance)await playNeuralTrack(token);
 }
 const player={queue:[],index:0,key:'',active:false,paused:false,speed:Number(read('speed',1))||1,generation:0,utterance:null};
 function updatePlayer(){

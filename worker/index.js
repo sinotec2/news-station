@@ -4,7 +4,7 @@ import {readSource} from './news-feed.js';
 import {collectNews} from './news-collection.js';
 import {handleNeuralAudio} from './neural-audio.js';
 import { SOURCES, COLLECTION_SETTINGS } from '../.generated/source-data.js';
-const APP_RELEASE = '0.1.7';
+const APP_RELEASE = '0.1.8';
 export {safeUrl} from './source-registry.js';
 export function parseSource(source, body) {
   return readSource(source, body).items;

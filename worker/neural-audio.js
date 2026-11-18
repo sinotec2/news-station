@@ -50,7 +50,14 @@ export async function generateNeuralAudio(script,{apiKey,connect,timeoutMs=90000
     else if(data.type==='response.output_audio_transcript.done')transcript=data.transcript;
     else if(data.type==='response.done'){
      if(data.response?.status!=='completed')return finish(providerProblem(null,data.response?.status_details?.error?.code,'generation_incomplete'));
-     if(normalizedTranscript(transcript)!==normalizedTranscript(script))return finish(audioProblem('narration_mismatch'));
+     const expected=normalizedTranscript(script), actual=normalizedTranscript(transcript);
+     if(actual!==expected){
+      let offset=0;
+      while(offset<expected.length&&expected[offset]===actual[offset])offset++;
+      // Record only the first differing character to diagnose pronunciation or spelling.
+      console.warn('audio_transcript_mismatch',{offset,expected:expected[offset]||'',actual:actual[offset]||''});
+      return finish(audioProblem('narration_mismatch'));
+     }
      finish(null,{audio:pcmToWav(chunks),transcript,format:'audio/wav'});
     }
    }catch(error){finish(error.code?error:audioProblem('invalid_provider_response'))}
