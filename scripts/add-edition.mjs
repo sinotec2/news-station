@@ -1,8 +1,9 @@
 // Accept a completed editorial JSON file, validate it, and append it to the publication store.
 import {readFile,writeFile,rename} from 'node:fs/promises';
-import {validateBriefing} from '../worker/editorial.js';
+import {validateBriefing,validateReviewedEvidence} from '../worker/editorial.js';
 const file=process.argv[2];if(!file)throw Error('Usage: node scripts/add-edition.mjs <completed-edition.json>');
 const edition=validateBriefing(JSON.parse(await readFile(file,'utf8')));
+for(const article of edition.articles)validateReviewedEvidence(article);
 const existing=JSON.parse(await readFile('content/editions.json','utf8'));
 if(existing.some(e=>e.id===edition.id))throw Error('Edition ID already exists; corrections require a new edition version and correction history.');
 const priorEvents=new Map(existing.filter(e=>e.date===edition.date).flatMap(e=>e.articles.map(a=>[a.event_id,a])));

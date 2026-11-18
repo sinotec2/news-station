@@ -1,20 +1,15 @@
 import { EDITIONS } from '../.generated/edition-data.js';
 import { CLIENT_SCRIPT } from '../.generated/client-data.js';
-import { candidateDecision } from './editorial.js';
+import {readSource} from './news-feed.js';
+import {collectNews} from './news-collection.js';
 import {handleNeuralAudio} from './neural-audio.js';
-import { SOURCES } from '../.generated/source-data.js';
-const APP_RELEASE = '0.1.5';
-export function safeUrl(value){try{const u=new URL(value);return u.protocol==='https:'?u.href:null}catch{return null}}
-const clean=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim();
-export function parseSource(source,body){
-let rows;
-if(source.type==='github') rows=JSON.parse(body).filter(r=>!r.draft&&!r.prerelease).map(r=>({id:source.id+':'+r.id,title:r.name||r.tag_name,url:r.html_url,date:r.published_at,excerpt:clean(r.body).slice(0,750)}));
-else if(source.type==='cisa') rows=JSON.parse(body).vulnerabilities.sort((a,b)=>b.dateAdded.localeCompare(a.dateAdded)).slice(0,8).map(r=>({id:r.cveID,title:r.cveID+' · '+r.vulnerabilityName,url:'https://www.cve.org/CVERecord?id='+encodeURIComponent(r.cveID),date:r.dateAdded+'T00:00:00Z',excerpt:r.shortDescription}));
-else if(source.type==='moenv'){const seen=new Set();rows=[...body.matchAll(/<a\b[^>]*href=["']([^"']*\/News\/\d+)["'][^>]*>([\s\S]*?)<\/a>/gi)].map(m=>{const title=clean(m[2]);const url=new URL(m[1],source.home).href;return {id:source.id+':'+url,title,url,date:null,excerpt:''}}).filter(r=>{if(r.title.length<8||seen.has(r.url))return false;seen.add(r.url);return true}).slice(0,12)}
-else rows=[...body.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/g)].slice(0,6).map((m,i)=>{let tag=k=>clean((m[1].match(new RegExp('<'+k+'(?:\\s[^>]*)?>([\\s\\S]*?)</'+k+'>'))||[])[1]);return {id:source.id+':'+tag('link'),title:tag('title'),url:tag('link'),date:tag('pubDate')?new Date(tag('pubDate')).toISOString():null,excerpt:tag('description').slice(0,750)}});
-return rows.filter(r=>r.title&&safeUrl(r.url)).map(r=>({...r,url:safeUrl(r.url),source:source.name,source_url:source.home,topic:source.topic,status:'unreviewed'}));}
-async function collect(){const reports=await Promise.all(SOURCES.map(async s=>{try{const response=await fetch(s.url,{headers:{'User-Agent':'NewsStation/0.1','Accept':s.type==='github'?'application/vnd.github+json':'*/*'},signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('HTTP '+response.status);const items=parseSource(s,await response.text());if(!items.length)throw Error('沒有可解析的項目');return {source:s.name,topic:s.topic,home:s.home,ok:true,items,checked_at:new Date().toISOString()}}catch(e){return {source:s.name,topic:s.topic,home:s.home,ok:false,error:e.message,items:[],checked_at:new Date().toISOString()}}}));return {collected_at:new Date().toISOString(),sources:reports.map(({items,...s})=>s),items:reports.flatMap(s=>s.items).map(item=>({...item,...candidateDecision(item)}))}}
-export default {async fetch(request,env,ctx){const url=new URL(request.url);if(url.pathname==='/api/audio'||url.pathname==='/api/audio/status')return handleNeuralAudio(request,env,EDITIONS);if(url.pathname==='/api/version')return Response.json({version:APP_RELEASE},{headers:{'Cache-Control':'private, no-store'}});if(url.pathname==='/api/editions')return Response.json({editions:EDITIONS,publication_mode:'editorial_snapshot',automatic_publication:false},{headers:{'Cache-Control':'private, no-store'}});if(url.pathname==='/api/inbox') {return Response.json(await collect(),{headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}})}
+import { SOURCES, COLLECTION_SETTINGS } from '../.generated/source-data.js';
+const APP_RELEASE = '0.1.6';
+export {safeUrl} from './source-registry.js';
+export function parseSource(source, body) {
+  return readSource(source, body).items;
+}
+export default {async fetch(request,env,ctx){const url=new URL(request.url);if(url.pathname==='/api/audio'||url.pathname==='/api/audio/status')return handleNeuralAudio(request,env,EDITIONS);if(url.pathname==='/api/version')return Response.json({version:APP_RELEASE},{headers:{'Cache-Control':'private, no-store'}});if(url.pathname==='/api/editions')return Response.json({editions:EDITIONS,publication_mode:'editorial_snapshot',automatic_publication:false},{headers:{'Cache-Control':'private, no-store'}});if(url.pathname==='/api/inbox') {return Response.json(await collectNews(SOURCES, {settings: COLLECTION_SETTINGS}),{headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}})}
 if(url.pathname==='/manifest.webmanifest')return Response.json({name:'News Station 新聞工作站',short_name:'News Station',lang:'zh-TW',start_url:'/',display:'standalone',background_color:'#f7f7f2',theme_color:'#163f3b',icons:[{src:'/icon.svg',sizes:'any',type:'image/svg+xml',purpose:'any'}]});
 if(url.pathname==='/icon.svg')return new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#163f3b"/><text x="64" y="88" font-size="78" font-family="serif" text-anchor="middle" fill="#f3efdf">N</text><circle cx="101" cy="27" r="9" fill="#e78261"/></svg>',{headers:{'Content-Type':'image/svg+xml'}});
 if(url.pathname==='/sw.js')return new Response(SERVICE_WORKER,{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store, max-age=0','Service-Worker-Allowed':'/'}});

@@ -226,5 +226,477 @@
         "correction_history": []
       }
     ]
+  },
+  {
+    "id": "2026-11-18-evening-editorial-1",
+    "date": "2026-11-18",
+    "edition": "evening",
+    "timezone": "Asia/Taipei",
+    "published_at": "2026-11-18T20:49:27+08:00",
+    "cutoff_at": "2026-11-18T20:49:27+08:00",
+    "version": 1,
+    "label": "編輯晚報",
+    "coverage_note": "逐篇採集驗收中有 251 個候選事件符合範圍。本期從中編選九則，查閱原文並逐項標註依據，涵蓋台北時間 11/18 的報導與近期更新。",
+    "articles": [
+      {
+        "id": "diesel-replacement-draft",
+        "event_id": "diesel-replacement-draft",
+        "topic": "環境",
+        "source": "中央社",
+        "date": "2026-11-18T17:39:00+08:00",
+        "url": "https://www.cna.com.tw/news/aipl/202611180280.aspx",
+        "title": "政院擬延長大型柴油車汰換減稅至2030年底",
+        "excerpt": "中央社報導，行政院預計討論大型柴油車汰換的貨物稅修正草案，擬把優惠延長四年，並把適用範圍擴至出廠十年以上的大型柴油車。",
+        "facts": [
+          "現行大型柴油車汰換貨物稅減徵每輛最高新台幣四十萬元，原定年底截止。",
+          "草案擬延長至二〇三〇年十二月三十一日。",
+          "草案擬擴大至出廠十年以上的大型柴油車。"
+        ],
+        "evidence": [
+          {
+            "fact": "現行大型柴油車汰換貨物稅減徵每輛最高新台幣四十萬元，原定年底截止。",
+            "support": "報導開頭交代現行制度及截止時間。",
+            "url": "https://www.cna.com.tw/news/aipl/202611180280.aspx",
+            "origin_id": "diesel-replacement-draft-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "草案擬延長至二〇三〇年十二月三十一日。",
+            "support": "報導末段列出草案擬延長的期限。",
+            "url": "https://www.cna.com.tw/news/aipl/202611180280.aspx",
+            "origin_id": "diesel-replacement-draft-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "草案擬擴大至出廠十年以上的大型柴油車。",
+            "support": "報導末段明列草案的車齡條件。",
+            "url": "https://www.cna.com.tw/news/aipl/202611180280.aspx",
+            "origin_id": "diesel-replacement-draft-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://www.cna.com.tw/news/aipl/202611180280.aspx"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "有老舊車隊的單位可先盤點車齡與汰換時程，再依正式條文估算成本。",
+        "uncertainty": "行政院預計討論草案，資格、期限和適用條件仍須等後續程序。",
+        "selection_reason": "涉及車隊資本支出與空污政策，草案時程具工作關聯。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "涉及車隊資本支出與空污政策，草案時程具工作關聯。",
+        "speech_script": "大型柴油車汰換優惠，可能會延到二〇三〇年底。中央社報導，行政院預計討論修法，也擬把適用範圍擴到出廠十年以上的大型柴油車。掌管車隊的單位可以先盤點車齡，實際減稅條件仍要等正式條文。",
+        "correction_history": []
+      },
+      {
+        "id": "floating-solar-water-monitoring",
+        "event_id": "floating-solar-water-monitoring",
+        "topic": "環境",
+        "source": "環境資訊中心",
+        "date": "2026-11-18T07:00:00Z",
+        "url": "https://e-info.org.tw/node/244091",
+        "title": "水庫光電爭議延燒，監測應將場址條件納入比較",
+        "excerpt": "環境資訊中心刊文指出，荷蘭特定淺水蓄水池的研究可作為選址與監測參考。文章建議公布採樣位置和標準，並評估光電區與非光電區的差異。",
+        "facts": [
+          "刊文指出，荷蘭案例追蹤的是一座淺且透明度較高的蓄水池。",
+          "刊文指出，研究觀察到部分底棲藍綠菌增加，但未發現飲用水水質受到影響。",
+          "作者建議公開採樣位置與適用標準，並比較光電區和非光電區的水質及生態。"
+        ],
+        "evidence": [
+          {
+            "fact": "刊文指出，荷蘭案例追蹤的是一座淺且透明度較高的蓄水池。",
+            "support": "文章第二節描述鹿特丹蓄水池的場址條件。",
+            "url": "https://e-info.org.tw/node/244091",
+            "origin_id": "floating-solar-water-monitoring-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "刊文指出，研究觀察到部分底棲藍綠菌增加，但未發現飲用水水質受到影響。",
+            "support": "第二節分開說明藻墊觀察、淨水場運轉與飲用水結果。",
+            "url": "https://e-info.org.tw/node/244091",
+            "origin_id": "floating-solar-water-monitoring-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "作者建議公開採樣位置與適用標準，並比較光電區和非光電區的水質及生態。",
+            "support": "第三節提出分區、季節及歷史資料的比較方式。",
+            "url": "https://e-info.org.tw/node/244091",
+            "origin_id": "floating-solar-water-monitoring-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://e-info.org.tw/node/244091"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "場址評估可把水深、透明度、溶氧和季節納入監測計畫，讓資料可供比對。",
+        "uncertainty": "此為具名分析文章，所引案例的結論適用於該場址條件。",
+        "selection_reason": "將水庫光電爭議落到可操作的監測方法與公開資料。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "將水庫光電爭議落到可操作的監測方法與公開資料。",
+        "speech_script": "水庫光電爭議中，環境資訊中心的分析文章提醒，荷蘭研究觀察的是一座淺水、透光度高的蓄水池。文章建議，台灣應公開採樣位置、檢測目的和適用標準，並依場址比較光電區與非光電區的變化。",
+        "correction_history": []
+      },
+      {
+        "id": "line-passkey-rollout",
+        "event_id": "line-passkey-rollout",
+        "topic": "資安",
+        "source": "iThome",
+        "date": "2026-11-17T22:11:07Z",
+        "url": "https://www.ithome.com.tw/news/180633",
+        "title": "LINE加入通行金鑰，換機登入與聊天備份要分開準備",
+        "excerpt": "iThome 報導，LINE 自手機版 26.17 起支援通行金鑰，可在換機時利用裝置解鎖方式登入。跨系統換機與聊天記錄備份仍需各自處理。",
+        "facts": [
+          "手機版LINE自二十六點十七版支援通行金鑰，適用於兩大手機系統。",
+          "用戶可先在帳號設定建立通行金鑰，再在新裝置用生物辨識或裝置解鎖驗證。",
+          "跨作業系統移轉與聊天備份要另外處理。"
+        ],
+        "evidence": [
+          {
+            "fact": "手機版LINE自二十六點十七版支援通行金鑰，適用於兩大手機系統。",
+            "support": "報導第二段列明版號與支援的手機系統。",
+            "url": "https://www.ithome.com.tw/news/180633",
+            "origin_id": "line-passkey-rollout-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "用戶可先在帳號設定建立通行金鑰，再在新裝置用生物辨識或裝置解鎖驗證。",
+            "support": "報導第二段描述設定與登入步驟。",
+            "url": "https://www.ithome.com.tw/news/180633",
+            "origin_id": "line-passkey-rollout-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "跨作業系統移轉與聊天備份要另外處理。",
+            "support": "報導末段分別交代金鑰移轉與聊天記錄的處理。",
+            "url": "https://www.ithome.com.tw/news/180633",
+            "origin_id": "line-passkey-rollout-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://www.ithome.com.tw/news/180633"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "換機清單可加入登入憑證移轉及聊天記錄備份兩個檢查項目。",
+        "uncertainty": "同步方式取決於原裝置及新裝置的作業系統，應以支援中心最新說明為準。",
+        "selection_reason": "影響常用通訊帳號換機與復原流程。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "影響常用通訊帳號換機與復原流程。",
+        "speech_script": "LINE 手機版開始支援通行金鑰。換機時可以用裝置解鎖或生物辨識登入。跨作業系統換機，記得先確認通行金鑰如何移轉。聊天記錄仍要另外備份，換機前把這兩件事都檢查一次。",
+        "correction_history": []
+      },
+      {
+        "id": "databricks-tabular-runtime",
+        "event_id": "databricks-tabular-runtime",
+        "topic": "AI",
+        "source": "iThome",
+        "date": "2026-11-17T19:11:53Z",
+        "url": "https://www.ithome.com.tw/news/180616",
+        "title": "Databricks用代管運算支援表格基礎模型部署",
+        "excerpt": "iThome 報導，Databricks 將把表格基礎模型接上代管運算與模型部署工具，讓團隊能評估既有表格資料的預測工作。",
+        "facts": [
+          "表格基礎模型可在推論時同時使用已標籤資料列和待預測資料列。",
+          "AI Runtime提供全代管的GPU環境，涵蓋實驗與生產部署。",
+          "模型可透過Databricks的服務工具部署成API端點。"
+        ],
+        "evidence": [
+          {
+            "fact": "表格基礎模型可在推論時同時使用已標籤資料列和待預測資料列。",
+            "support": "技術段落描述情境學習如何輸入資料列。",
+            "url": "https://www.ithome.com.tw/news/180616",
+            "origin_id": "databricks-tabular-runtime-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "AI Runtime提供全代管的GPU環境，涵蓋實驗與生產部署。",
+            "support": "服務介紹段落列明環境與用途。",
+            "url": "https://www.ithome.com.tw/news/180616",
+            "origin_id": "databricks-tabular-runtime-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "模型可透過Databricks的服務工具部署成API端點。",
+            "support": "部署說明交代模型服務與端點方式。",
+            "url": "https://www.ithome.com.tw/news/180616",
+            "origin_id": "databricks-tabular-runtime-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://www.ithome.com.tw/news/180616"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "先找一個有標籤的需求預測或維護案例，與現行模型比較準確率、延遲及運算成本。",
+        "uncertainty": "報導內容涵蓋供應商說明，實際效益與成本須用自家資料驗證。",
+        "selection_reason": "具有企業預測模型開發與維運價值，能用現有基線實測。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "具有企業預測模型開發與維運價值，能用現有基線實測。",
+        "speech_script": "資料平台 Databricks 推出運算環境，支援表格資料的預測模型。這類模型可把已標記的例子和需要預測的資料一起輸入。若要評估導入，可以先拿已有的預測任務，比較準確率、延遲和成本。",
+        "correction_history": []
+      },
+      {
+        "id": "eu-grid-permit-agreement",
+        "event_id": "eu-grid-permit-agreement",
+        "topic": "環境",
+        "source": "科技新報",
+        "date": "2026-11-18T09:23:50Z",
+        "url": "https://technews.tw/2026/11/18/green-power-increases-grid-lags-eu-accelerates-wind-solar-storage-approvals/",
+        "title": "歐盟就綠電、電網及儲能許可改革達成臨時協議",
+        "excerpt": "科技新報報導，歐盟理事會與歐洲議會取得臨時共識，擬加快再生能源、電網和儲能設備的許可程序，回應輸電瓶頸。",
+        "facts": [
+          "協議涵蓋再生能源、電網和儲能設施的許可程序。",
+          "協議允許成員國把部分再生能源與電網計畫認定為重大公共利益。",
+          "臨時協議仍待歐盟理事會與歐洲議會正式批准。"
+        ],
+        "evidence": [
+          {
+            "fact": "協議涵蓋再生能源、電網和儲能設施的許可程序。",
+            "support": "開頭交代臨時協議的設施範圍。",
+            "url": "https://technews.tw/2026/11/18/green-power-increases-grid-lags-eu-accelerates-wind-solar-storage-approvals/",
+            "origin_id": "eu-grid-permit-agreement-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "協議允許成員國把部分再生能源與電網計畫認定為重大公共利益。",
+            "support": "改革說明段落交代計畫認定方式。",
+            "url": "https://technews.tw/2026/11/18/green-power-increases-grid-lags-eu-accelerates-wind-solar-storage-approvals/",
+            "origin_id": "eu-grid-permit-agreement-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "臨時協議仍待歐盟理事會與歐洲議會正式批准。",
+            "support": "末段清楚交代後續程序。",
+            "url": "https://technews.tw/2026/11/18/green-power-increases-grid-lags-eu-accelerates-wind-solar-storage-approvals/",
+            "origin_id": "eu-grid-permit-agreement-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://technews.tw/2026/11/18/green-power-increases-grid-lags-eu-accelerates-wind-solar-storage-approvals/"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "開發排程可把審批、輸電建設與可用併網容量分開追蹤，各項進度未必同步。",
+        "uncertainty": "改革仍在臨時協議階段，實際縮短的工期及各國執行方式尚待確認。",
+        "selection_reason": "放在能源專案規劃脈絡下，可理解許可與電網容量的不同瓶頸。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "放在能源專案規劃脈絡下，可理解許可與電網容量的不同瓶頸。",
+        "speech_script": "歐盟理事會和歐洲議會就能源設施許可取得臨時共識，涵蓋再生能源、電網和儲能。這項協議還要正式批准。對開發者來說，許可更快之後，還要繼續追蹤電網建設和可用的併網容量。",
+        "correction_history": []
+      },
+      {
+        "id": "globalfoundries-atlas-pilot",
+        "event_id": "globalfoundries-atlas-pilot",
+        "topic": "IT",
+        "source": "科技新報",
+        "date": "2026-11-18T09:20:13Z",
+        "url": "https://technews.tw/2026/11/18/boston-dynamics-enters-semiconductor-industry/",
+        "title": "格羅方德規劃2027年初測試人型機器人Atlas",
+        "excerpt": "科技新報報導，格羅方德將擴大四足機器人的巡檢部署，另外規劃讓人型機器人 Atlas 進入廠區測試，評估適合交付的任務。",
+        "facts": [
+          "雙方預定二〇二七年初在格羅方德廠區進行Atlas實地測試。",
+          "測試聚焦於找出適合人型機器人執行的精密製造任務。",
+          "格羅方德另計畫把四足機器人Spot的部署擴至美國、德國及新加坡的據點。"
+        ],
+        "evidence": [
+          {
+            "fact": "雙方預定二〇二七年初在格羅方德廠區進行Atlas實地測試。",
+            "support": "報導開頭及第三段均記載試驗時程。",
+            "url": "https://technews.tw/2026/11/18/boston-dynamics-enters-semiconductor-industry/",
+            "origin_id": "globalfoundries-atlas-pilot-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "測試聚焦於找出適合人型機器人執行的精密製造任務。",
+            "support": "第三段交代評估目標。",
+            "url": "https://technews.tw/2026/11/18/boston-dynamics-enters-semiconductor-industry/",
+            "origin_id": "globalfoundries-atlas-pilot-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "格羅方德另計畫把四足機器人Spot的部署擴至美國、德國及新加坡的據點。",
+            "support": "第四段列出部署據點。",
+            "url": "https://technews.tw/2026/11/18/boston-dynamics-enters-semiconductor-industry/",
+            "origin_id": "globalfoundries-atlas-pilot-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://technews.tw/2026/11/18/boston-dynamics-enters-semiconductor-industry/"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "廠務巡檢已有較具體的任務，評估人型機器人時可另外看精度、可靠度和維修成本。",
+        "uncertainty": "Atlas仍是試驗計畫，半導體製程成效與部署規模尚未驗證。",
+        "selection_reason": "提供精密製造導入實體人工智慧的實地試驗案例。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "提供精密製造導入實體人工智慧的實地試驗案例。",
+        "speech_script": "格羅方德預計明年初測試人型機器人 Atlas，看看它能在晶圓廠執行哪些任務。公司也計畫擴大現有的四足機器人巡檢。這兩種機器人的成熟度不同，Atlas 目前還在規劃實測。",
+        "correction_history": []
+      },
+      {
+        "id": "gemini-data-controls",
+        "event_id": "gemini-data-controls",
+        "topic": "AI",
+        "source": "Ars Technica",
+        "date": "2026-11-17T16:50:10Z",
+        "url": "https://arstechnica.com/ai/2026/11/google-will-let-you-opt-out-of-ai-training-in-gemini-without-losing-your-history/",
+        "title": "Gemini逐步拆分聊天紀錄與模型訓練設定",
+        "excerpt": "Ars Technica 報導，Google 正逐步推出 Gemini 的獨立資料控制，讓用戶保留聊天紀錄時，也能分開決定是否允許日後互動用於訓練。",
+        "facts": [
+          "變更把聊天紀錄與模型訓練分成兩個開關。",
+          "先前退出訓練一般要關閉聊天紀錄，新設計仍允許保留紀錄。",
+          "新的訓練選項適用於之後的互動。"
+        ],
+        "evidence": [
+          {
+            "fact": "變更把聊天紀錄與模型訓練分成兩個開關。",
+            "support": "報導小標與設定流程均描述開關獨立。",
+            "url": "https://arstechnica.com/ai/2026/11/google-will-let-you-opt-out-of-ai-training-in-gemini-without-losing-your-history/",
+            "origin_id": "gemini-data-controls-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "先前退出訓練一般要關閉聊天紀錄，新設計仍允許保留紀錄。",
+            "support": "報導對照變更前後的使用方式。",
+            "url": "https://arstechnica.com/ai/2026/11/google-will-let-you-opt-out-of-ai-training-in-gemini-without-losing-your-history/",
+            "origin_id": "gemini-data-controls-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "新的訓練選項適用於之後的互動。",
+            "support": "報導明示時間範圍，並提醒既有資料另有處理方式。",
+            "url": "https://arstechnica.com/ai/2026/11/google-will-let-you-opt-out-of-ai-training-in-gemini-without-losing-your-history/",
+            "origin_id": "gemini-data-controls-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://arstechnica.com/ai/2026/11/google-will-let-you-opt-out-of-ai-training-in-gemini-without-losing-your-history/"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "組織可分別檢查留存與訓練選項，再依資料治理政策決定可輸入的內容。",
+        "uncertainty": "功能分階段推出，實際可用性可能取決於帳號及版本。",
+        "selection_reason": "釐清個人及工作資料留存與模型訓練的設定差異。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "釐清個人及工作資料留存與模型訓練的設定差異。",
+        "speech_script": "Gemini 正逐步把聊天紀錄和模型訓練分成兩個開關。用戶可以保留聊天紀錄，再另行選擇日後互動是否拿來訓練。這項設定主要影響之後的使用，若用在工作上，仍應先依組織的資料政策判斷可輸入的內容。",
+        "correction_history": []
+      },
+      {
+        "id": "taiwan-asean-chip-supply-chain",
+        "event_id": "taiwan-asean-chip-supply-chain",
+        "topic": "IT",
+        "source": "中央社",
+        "date": "2026-11-18T18:07:00+08:00",
+        "url": "https://www.cna.com.tw/news/aopl/202611180294.aspx",
+        "title": "美國駐東協大使指出台灣是半導體供應鏈重要樞紐",
+        "excerpt": "中央社報導，美國駐東協大使在記者會表達與台灣深化半導體合作的期待，並說美方希望擴大安全供應鏈夥伴關係。",
+        "facts": [
+          "美國駐東協大使於線上記者會回應媒體對供應鏈倡議的提問。",
+          "他將台灣稱為半導體及相關供應鏈的重要樞紐，並期待進一步合作。",
+          "記者會上未明確說明是否邀請更多東協成員加入相關倡議。"
+        ],
+        "evidence": [
+          {
+            "fact": "美國駐東協大使於線上記者會回應媒體對供應鏈倡議的提問。",
+            "support": "報導記載發言場合與問題背景。",
+            "url": "https://www.cna.com.tw/news/aopl/202611180294.aspx",
+            "origin_id": "taiwan-asean-chip-supply-chain-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "他將台灣稱為半導體及相關供應鏈的重要樞紐，並期待進一步合作。",
+            "support": "報導直接交代大使對台灣的定位。",
+            "url": "https://www.cna.com.tw/news/aopl/202611180294.aspx",
+            "origin_id": "taiwan-asean-chip-supply-chain-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "記者會上未明確說明是否邀請更多東協成員加入相關倡議。",
+            "support": "報導第二段說明邀請名單仍無具體答案。",
+            "url": "https://www.cna.com.tw/news/aopl/202611180294.aspx",
+            "origin_id": "taiwan-asean-chip-supply-chain-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://www.cna.com.tw/news/aopl/202611180294.aspx"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "供應鏈規劃可留意後續合作範圍、出口規則與落地專案，先區分外交表態和正式安排。",
+        "uncertainty": "這是記者會說法，目前沒有新合作案的具體承諾或時程。",
+        "selection_reason": "對半導體供應鏈和區域運輸或投資規劃具追蹤價值。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "對半導體供應鏈和區域運輸或投資規劃具追蹤價值。",
+        "speech_script": "美國駐東協大使在記者會上說，台灣是半導體供應鏈的重要樞紐，美方期待進一步合作。他也談到擴大供應鏈夥伴關係，但沒有說明是否會邀請更多東協成員加入。具體安排還需要等正式消息。",
+        "correction_history": []
+      },
+      {
+        "id": "microsoft-mai-ignite",
+        "event_id": "microsoft-mai-ignite",
+        "topic": "AI",
+        "source": "iThome",
+        "date": "2026-11-18T02:11:23Z",
+        "url": "https://www.ithome.com.tw/news/180590",
+        "title": "微軟發表七款自研模型，瞄準企業工作與成本",
+        "excerpt": "iThome 報導，微軟在 Ignite 發表七款自研模型，應用涵蓋程式開發、影像及即時語音，也宣布企業可取得模型權重在自家 Azure 環境部署。",
+        "facts": [
+          "微軟於Ignite宣布七款自研模型。",
+          "新模型與服務涵蓋程式開發、影像生成及即時語音等工作。",
+          "微軟也宣布模型權重授權，企業可在自己的Azure環境部署。"
+        ],
+        "evidence": [
+          {
+            "fact": "微軟於Ignite宣布七款自研模型。",
+            "support": "報導開頭交代發布場合和數量。",
+            "url": "https://www.ithome.com.tw/news/180590",
+            "origin_id": "microsoft-mai-ignite-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "新模型與服務涵蓋程式開發、影像生成及即時語音等工作。",
+            "support": "各模型說明分別列出其任務。",
+            "url": "https://www.ithome.com.tw/news/180590",
+            "origin_id": "microsoft-mai-ignite-report",
+            "review_state": "original_read"
+          },
+          {
+            "fact": "微軟也宣布模型權重授權，企業可在自己的Azure環境部署。",
+            "support": "結尾交代授權及部署方式。",
+            "url": "https://www.ithome.com.tw/news/180590",
+            "origin_id": "microsoft-mai-ignite-report",
+            "review_state": "original_read"
+          }
+        ],
+        "source_urls": [
+          "https://www.ithome.com.tw/news/180590"
+        ],
+        "verified_at": "2026-11-18T20:49:27+08:00",
+        "verification_status": "attributed_report",
+        "status": "edited",
+        "analysis": "採購評估應以自家工作負載算每件任務的成本，並檢查授權與資料治理條件。",
+        "uncertainty": "價格與效能比較主要是微軟的說法，實際結果仍待獨立測試。",
+        "selection_reason": "企業語音和代理人服務新增可比較的部署模式。",
+        "editorial_kind": "reported_update",
+        "newsworthiness": "企業語音和代理人服務新增可比較的部署模式。",
+        "speech_script": "微軟發表七款自研模型，涵蓋程式開發、影像和即時語音，也提出讓企業在自己的雲端環境部署模型的授權。廠商公布的成本和效能數字，可以當作試算起點，實際採用前仍要用自己的任務測試。",
+        "correction_history": []
+      }
+    ]
   }
 ]

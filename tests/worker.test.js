@@ -9,6 +9,7 @@ test('RSS preserves original evidence and removes markup',()=>{const rows=parseS
 test('routes return app, manifest and explicit 404',async()=>{let r=await worker.fetch(new Request('https://station.test/'));assert.equal(r.status,200);let html=await r.text();assert.match(html,/發生什麼/);const script=html.match(/<script>([\s\S]*)<\/script>/)[1];new Function(script);r=await worker.fetch(new Request('https://station.test/manifest.webmanifest'));assert.equal((await r.json()).display,'standalone');r=await worker.fetch(new Request('https://station.test/missing'));assert.equal(r.status,404)});
 test('the bundled inbox fetches URLs from the YAML registry and reports upstream failures', async () => {
  const registry = parse(await readFile('SOURCE-REGISTRY.yaml', 'utf8'));
+ const active = registry.sources.filter(source => source.activation !== 'disabled_draft');
  const originalFetch = globalThis.fetch;
  const fetchedUrls = [];
  globalThis.fetch = async url => {
@@ -18,8 +19,8 @@ test('the bundled inbox fetches URLs from the YAML registry and reports upstream
  try {
   const response = await deployedWorker.fetch(new Request('https://station.test/api/inbox'));
   const data = await response.json();
-  assert.deepEqual(fetchedUrls, registry.sources.map(source => new URL(source.url).href));
-  assert.deepEqual(data.sources.map(source => source.source), registry.sources.map(source => source.name));
+  assert.deepEqual(fetchedUrls, active.map(source => new URL(source.url).href));
+  assert.deepEqual(data.sources.map(source => source.source), active.map(source => source.name));
   assert.deepEqual(data.items, []);
   assert.ok(data.sources.every(source => !source.ok && source.error === 'HTTP 503'));
  } finally {

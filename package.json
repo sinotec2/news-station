@@ -9,6 +9,10 @@
     "validate:editorial": "node scripts/validate-editorial.mjs"
   },
   "devDependencies": {
+    "cheerio": "^1.2.0",
+    "esbuild": "^0.28.2",
+    "he": "^2.0.0",
+    "saxes": "^6.0.0",
     "yaml": "^2.9.1"
   }
 }

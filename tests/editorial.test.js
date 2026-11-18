@@ -18,15 +18,15 @@ test('publication rejects changelogs, unsupported facts, duplicated events and f
 test('edited edition endpoint has Chinese summaries, fact citations and clean speech',async()=>{
  const res=await worker.fetch(new Request('https://station.test/api/editions'));assert.equal(res.status,200);const data=await res.json();assert.equal(data.automatic_publication,false);assert.ok(data.editions[0].articles.length>=4);data.editions.forEach(e=>validateBriefing(e));const chunks=speechSegments(data.editions[0].articles);assert.ok(chunks.length>5);assert.ok(chunks.every(c=>c.text.length<=120&&!/https?:\/\/|##|\[[^\]]+\]\(/.test(c.text)));assert.equal(speechSegments([{status:'unreviewed',speech_script:'不該朗讀'}]).length,0);
 });
-function clientHarness(){
+function clientHarness(clientEditions=editions){
  const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',hidden:false,classList:{toggle(){}},setAttribute(){},showModal(){this.open=true}});return nodes.get(id)};
  const memory=new Map();let said=[];
  const handlers=new Map();const document={querySelector:node,querySelectorAll(){return []},addEventListener(type,handler){handlers.set(type,handler)}};
- const context=vm.createContext({document,console,localStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},window:{speechSynthesis:{}},navigator:{},Intl,Date,URL,Blob,setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>({editions})}),SpeechSynthesisUtterance:class{constructor(text){this.text=text}},speechSynthesis:{cancel(){},speak(u){said.push(u)},getVoices(){return []}}});
+ const context=vm.createContext({document,console,localStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},window:{speechSynthesis:{}},navigator:{},Intl,Date,URL,Blob,setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>({editions:clientEditions})}),SpeechSynthesisUtterance:class{constructor(text){this.text=text}},speechSynthesis:{cancel(){},speak(u){said.push(u)},getVoices(){return []}}});
  return {context,nodes,node,said,handlers};
 }
 test('client renders real summaries, filters SDKs and speaks edited text without requiring imports',async()=>{
- const h=clientHarness();vm.runInContext(await readFile('web/app.js','utf8'),h.context);
+ const h=clientHarness([editions[0]]);vm.runInContext(await readFile('web/app.js','utf8'),h.context);
  await new Promise(resolve=>setImmediate(resolve));
  const html=h.node('#list').innerHTML;
  assert.match(html,/三|四家外部評估機構/);assert.match(html,/為何重要 · AI 判讀/);assert.match(html,/brief-facts/);assert.doesNotMatch(html,/\[3\.52\.0\]|commit\/|compare\//);
@@ -72,17 +72,30 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.5');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.6');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.5');
+ assert.equal((await version.json()).version,'0.1.6');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.5'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.6'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.5']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.6']);
+});
+
+test('home opens the most recent published edition and preserves a reader’s manual switch',async()=>{
+ const evening=editions.find(edition=>edition.id==='2026-11-18-evening-editorial-1');
+ assert.equal(evening.articles.length,9);
+ const h=clientHarness([editions[0],evening]);
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(vm.runInContext('current().id',h.context),evening.id);
+ assert.match(h.node('#list').innerHTML,/柴油車/);
+ h.handlers.get('click')({target:{closest:()=>({dataset:{edition:'morning'}})}});
+ await vm.runInContext('loadEditions()',h.context);
+ assert.equal(vm.runInContext('current().id',h.context),editions[0].id);
 });

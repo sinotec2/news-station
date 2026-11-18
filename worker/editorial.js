@@ -1,11 +1,14 @@
-const TOPICS = ['AI','IT','資安','環境'];
+const TOPICS = ['AI','IT','資安','環境','綜合'];
 export function plainText(value) {
  return String(value || '').replace(/```[\s\S]*?```/g,'').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/https?:\/\/\S+/g,'').replace(/(?:^|\n)\s{0,3}#{1,6}\s*/g,'').replace(/\s+/g,' ').trim();
 }
 export function candidateDecision(item) {
  const title=String(item.title||'');
  const text=title+' '+String(item.excerpt||'');
- if (/\b(sponsored|advertorial|affiliate)\b|廣編|業配|贊助內容/i.test(text)) return {lane:'excluded',reason:'明示贊助或導購，不作一般新聞'};
+ const paidLabel = /^(?:[〔【\[(]\s*)?(?:sponsored(?: content| report| by)?\b|advertorial\b|affiliate disclosure\b|廣編(?:特輯)?|業配|贊助內容)/i;
+ if (item.sponsored === true || paidLabel.test(title) || /^(?:sponsored by\b|affiliate disclosure\b|本文為贊助內容)/i.test(item.excerpt ?? '')) {
+  return {lane:'excluded',reason:'明示贊助或導購，不作一般新聞'};
+ }
  if (/github\.com\/[^/]+\/[^/]+\/releases\//.test(item.url||'') || /^v?\d+\.\d+\.\d+/.test(title)) {
   if (/security|vulnerab|CVE-\d{4}|安全漏洞|資安漏洞/i.test(text)) return {lane:'review',reason:'涉及安全修補，須核對影響範圍後再決定入選'};
   return {lane:'technical',reason:'例行軟體或 SDK 版本紀錄，預設移出新聞選稿'};
@@ -29,17 +32,32 @@ export function validateBriefing(edition,{now=Date.now()}={}) {
   requireField(TOPICS.includes(a.topic)&&isChinese(a.title)&&isProse(a.title)&&a.title.length>=10&&!/^v?\d+\.\d+/.test(a.title),'標題必須是有意義的繁中新聞標題');
   requireField(isChinese(a.excerpt)&&isProse(a.excerpt)&&a.excerpt.length>=25,'必須有獨立撰寫的繁中重點摘要');
   requireField(Array.isArray(a.facts)&&a.facts.length>=3&&a.facts.length<=5&&a.facts.every(f=>isChinese(f)&&isProse(f)),'須有三至五項繁中事實');
-  requireField(Array.isArray(a.evidence)&&a.evidence.length===a.facts.length&&a.evidence.every(e=>isHttps(e.url)&&typeof e.support==='string'&&e.support.length>=8),'每項事實都須有來源與證據說明');
-  requireField(a.evidence.every(e=>a.source_urls?.includes(e.url))&&a.source_urls.every(isHttps)&&a.source_urls.includes(a.url),'事實引用須對應原始來源');
+  requireField(Array.isArray(a.evidence)&&a.evidence.length>=a.facts.length&&a.evidence.every(e=>isHttps(e.url)&&typeof e.support==='string'&&e.support.length>=8),'每項事實都須有來源與證據說明');
+  requireField(Array.isArray(a.source_urls)&&a.evidence.every(e=>a.source_urls.includes(e.url))&&a.source_urls.every(isHttps)&&a.source_urls.includes(a.url),'事實引用須對應原始來源');
   requireField(typeof a.source==='string'&&isTime(a.verified_at)&&Date.parse(a.verified_at)<=Date.parse(edition.cutoff_at)&&isTime(a.date)&&Date.parse(a.date)<=Date.parse(edition.cutoff_at),'來源名稱、來源日期或核對時間無效');
-  requireField(['official_statement','corroborated'].includes(a.verification_status),'必須清楚標記官方聲明或交叉核對');
+  requireField(['official_statement','corroborated','attributed_report'].includes(a.verification_status),'必須清楚標記來源性質與核對狀態');
   requireField(a.verification_status!=='corroborated'||new Set(a.source_urls.map(u=>new URL(u).hostname)).size>=2,'交叉核對至少需要兩個來源網域（仍需人工判斷獨立性）');
+  if (a.verification_status==='attributed_report'||a.evidence.some(e=>e.origin_id)) validateReviewedEvidence(a);
+  else requireField(a.evidence.length===a.facts.length,'既有期刊須為每則事實保留一項對應證據');
   requireField(a.status==='edited'&&isChinese(a.analysis)&&isChinese(a.uncertainty)&&isChinese(a.selection_reason),'缺少判讀、不確定性或入選理由');
   requireField(a.editorial_kind!=='routine_release'&&typeof a.newsworthiness==='string'&&a.newsworthiness.length>=10,'例行版本更新不得直接入選');
   requireField(isChinese(a.speech_script)&&isProse(a.speech_script)&&a.speech_script.length>=50,'須有不含網址或 Markdown 的繁中口播稿');
   requireField(Array.isArray(a.correction_history),'缺少更正紀錄');
  }
  return edition;
+}
+
+export function validateReviewedEvidence(article) {
+ const originsByFact = new Map(article.facts.map(fact => [fact, new Set()]));
+ for (const evidence of article.evidence) {
+  requireField(evidence.review_state==='original_read'&&typeof evidence.origin_id==='string'&&evidence.origin_id.trim(),
+   '必須查閱可讀原文並標記原始報導或通稿的共同來源');
+  requireField(originsByFact.has(evidence.fact),'證據所對應的事實不在期刊內');
+  originsByFact.get(evidence.fact).add(evidence.origin_id.trim());
+ }
+ const minOrigins = article.verification_status==='corroborated' ? 2 : 1;
+ requireField([...originsByFact.values()].every(origins=>origins.size>=minOrigins),
+  '每項事實都需要充分的獨立原文。同一通稿的轉載算一個來源');
 }
 export function speechSegments(articles) {
  const out=[];
