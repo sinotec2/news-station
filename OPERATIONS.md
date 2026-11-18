@@ -12,6 +12,8 @@ Safari 開啟私人網址後，首頁可直接閱讀編輯版，包含繁中摘�
 
 ## 出版與驗證
 
+維護新聞來源請編輯 `SOURCE-REGISTRY.yaml`。來源清單變更需重新建置並部署。部署後，「來源工作區」和「來源狀態」的「重新擷取來源」會抓取清單上的最新素材。
+
 閱讀 EDITORIAL.md。`npm test` 先編譯並驗證編輯資料，再測試篩選、逐項來源、過期／未出版版次、TTS 與來源錯誤。`npm run build` 生成 dist/server/index.js，通過後再用 Sites 保留原 project_id 與私人權限部署。
 
 環境無 Sites workflow helper 與 cua_repl.js，因此使用 Git 與 tar 封裝，未進行瀏覽器及真機 QA。部署後以既有授權讀回首頁、/api/editions、/api/inbox，檢查狀態、內容與來源結果。不要把憑證寫入檔案或來源樹。

@@ -2,14 +2,8 @@ import { EDITIONS } from '../.generated/edition-data.js';
 import { CLIENT_SCRIPT } from '../.generated/client-data.js';
 import { candidateDecision } from './editorial.js';
 import {handleNeuralAudio} from './neural-audio.js';
-const APP_RELEASE = '0.1.4';
-const SOURCES = [
-{id:'openai-news',name:'OpenAI 新聞室',topic:'AI',url:'https://openai.com/news/rss.xml',home:'https://openai.com/news/',type:'rss'},
-{id:'moenv',name:'台灣環境部',topic:'環境',url:'https://enews.moenv.gov.tw/News/List?Lang=zh-tw&key=11',home:'https://enews.moenv.gov.tw/',type:'moenv'},
-{id:'openai',name:'OpenAI Python SDK',topic:'AI',url:'https://api.github.com/repos/openai/openai-python/releases?per_page=6',home:'https://github.com/openai/openai-python/releases',type:'github'},
-{id:'node',name:'Node.js',topic:'IT',url:'https://api.github.com/repos/nodejs/node/releases?per_page=6',home:'https://github.com/nodejs/node/releases',type:'github'},
-{id:'cisa',name:'CISA 已知遭利用漏洞目錄',topic:'資安',url:'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json',home:'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',type:'cisa'},
-{id:'nasa',name:'NASA Earth Observatory',topic:'環境',url:'https://earthobservatory.nasa.gov/feeds/earth-observatory.rss',home:'https://earthobservatory.nasa.gov/',type:'rss'}];
+import { SOURCES } from '../.generated/source-data.js';
+const APP_RELEASE = '0.1.5';
 export function safeUrl(value){try{const u=new URL(value);return u.protocol==='https:'?u.href:null}catch{return null}}
 const clean=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim();
 export function parseSource(source,body){

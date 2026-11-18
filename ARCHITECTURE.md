@@ -1,10 +1,11 @@
 # News Station — 繁中編輯試刊
 
-Cloudflare Worker ESM，無套件相依。手機首頁從 `/api/editions` 讀取已編輯的期刊；不再要求使用者自行準備 JSON 才有新聞。
+Cloudflare Worker ESM，執行時無套件相依。手機首頁從 `/api/editions` 讀取已編輯的期刊；不再要求使用者自行準備 JSON 才有新聞。
 
 - `content/editions.json`：含實際日期、截止時間與版本的編輯資料。每則包含繁中摘要、事實、逐項引用、判讀、限制、口播稿與更正紀錄。
 - `worker/editorial.js`：候選篩選與編輯 schema 驗證。SDK 小版本預設移至技術參考，安全修補送待評估，明示贊助排除。
-- `worker/index.js`：私有站路由與六個來源擷取。來源獨立逾時與錯誤顯示，不使用平台 default cache。
+- `SOURCE-REGISTRY.yaml`：新聞來源清單，建置時驗證並嵌入 Worker。
+- `worker/index.js`：私有站路由與來源擷取。來源獨立逾時與錯誤顯示，不使用平台 default cache。
 - `web/app.js`：閱讀、分類、來源、收藏、已讀、備份。裝置 TTS 朗讀單則或整期專用口播稿，支援倍速、暫停、分句進度；不生成 MP3。
 - `build.mjs`：驗證期刊、檢查前端語法並嵌入單一 Worker ESM。
 - `scripts/add-edition.mjs`：加入新的合格期刊；拒絕沒有新增事實的同日事件重報。

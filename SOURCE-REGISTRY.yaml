@@ -3,6 +3,7 @@ sources:
   - source_id: openai-news
     name: OpenAI 新聞室
     url: https://openai.com/news/rss.xml
+    home: https://openai.com/news/
     topic: AI
     language: en
     type: first_party_announcement
@@ -11,6 +12,7 @@ sources:
   - source_id: moenv
     name: 台灣環境部
     url: https://enews.moenv.gov.tw/News/List?Lang=zh-tw&key=11
+    home: https://enews.moenv.gov.tw/
     topic: 環境
     language: zh-TW
     type: government
@@ -19,6 +21,7 @@ sources:
   - source_id: openai
     name: OpenAI Python SDK
     url: https://api.github.com/repos/openai/openai-python/releases?per_page=6
+    home: https://github.com/openai/openai-python/releases
     topic: AI
     language: en
     type: first_party_release
@@ -27,13 +30,15 @@ sources:
   - source_id: node
     name: Node.js
     url: https://api.github.com/repos/nodejs/node/releases?per_page=6
+    home: https://github.com/nodejs/node/releases
     topic: IT
     language: en
     type: first_party_release
     fetch: github_json
   - source_id: cisa
-    name: CISA KEV
+    name: CISA 已知遭利用漏洞目錄
     url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+    home: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
     topic: 資安
     language: en
     type: government
@@ -41,6 +46,7 @@ sources:
   - source_id: nasa
     name: NASA Earth Observatory
     url: https://earthobservatory.nasa.gov/feeds/earth-observatory.rss
+    home: https://earthobservatory.nasa.gov/
     topic: 環境
     language: en
     type: government

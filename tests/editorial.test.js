@@ -37,6 +37,29 @@ test('client renders real summaries, filters SDKs and speaks edited text without
  vm.runInContext("state.showTechnical=true;render();openItem(0)",h.context);assert.match(h.node('#detail').innerHTML,/<details><summary>展開原始摘錄/);
  vm.runInContext("state.view='edition';state.edition='evening';render()",h.context);assert.equal(vm.runInContext('current()',h.context),undefined);assert.match(h.node('#list').innerHTML,/這一期尚未發布/);
 });
+test('the workspace refresh button fetches sources and shows the collection time', async () => {
+ const h = clientHarness();
+ vm.runInContext(await readFile('web/app.js','utf8'), h.context);
+ await new Promise(resolve => setImmediate(resolve));
+ let releaseFetch;
+ let requests = 0;
+ h.context.fetch = path => {
+  assert.equal(path, '/api/inbox');
+  requests++;
+  return new Promise(resolve => {releaseFetch = resolve});
+ };
+ vm.runInContext("state.view='inbox';render()", h.context);
+ const clickRefresh = () => h.handlers.get('click')({target:{closest:()=>({dataset:{action:'refresh'}})}});
+ assert.match(h.node('#body').innerHTML, /重新擷取來源/);
+ clickRefresh();
+ clickRefresh();
+ assert.equal(requests, 1);
+ assert.match(h.node('#body').innerHTML, /disabled>擷取中/);
+ releaseFetch({ok:true,json:async()=>({items:[],sources:[],collected_at:'2026-11-18T02:00:00Z'})});
+ await new Promise(resolve => setImmediate(resolve));
+ assert.match(h.node('#body').innerHTML, /最近擷取.*（台北）/);
+ assert.match(h.node('#body').innerHTML, /重新擷取來源/);
+});
 test('play click starts without opening or approving any story',async()=>{
  const h=clientHarness();vm.runInContext(await readFile('web/app.js','utf8'),h.context);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(vm.runInContext('state.read.length',h.context),0);
@@ -49,17 +72,17 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.4');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.5');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.4');
+ assert.equal((await version.json()).version,'0.1.5');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.4'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.5'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.4']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.5']);
 });
