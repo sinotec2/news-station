@@ -63,7 +63,7 @@ npm run update:morning
 npm run update:evening
 ```
 
-每次指令處理指定版次，日期依台北時區。晨報涵蓋前一日晚報截止後至當日 07:00；晚報涵蓋當日 07:00 後至 17:30。每次執行都留下 `.generated/edition-runs/YYYY-MM-DD-morning/report.json` 或對應的 `evening/report.json`，可查看結果與該次採集、選稿明細。重跑已出版的同一版次會傳回現有期刊。合格新聞可少於篇數上限，沒有合格稿件時會保留上一期。
+每次指令處理指定版次，日期依台北時區。晨報涵蓋前一日晚報截止後至當日 07:00；晚報涵蓋當日 07:00 後至 16:30。每次執行都留下 `.generated/edition-runs/YYYY-MM-DD-morning/report.json` 或對應的 `evening/report.json`，可查看結果與該次採集、選稿明細。重跑已出版的同一版次會傳回現有期刊。合格新聞可少於篇數上限，沒有合格稿件時會保留上一期。
 
 手動更新來源與正式出刊用途不同。網頁的「重新擷取來源」更新候選列表；晨晚報指令會核對原文與編輯材料，將可出刊的結果寫入本機期刊檔。可用下列方式指定日期試跑、帶入已核對稿件，或把成功的正式結果發送到自己的站。
 
@@ -84,10 +84,10 @@ node --env-file=.env scripts/publish-edition.mjs --report .generated/edition-run
 ```cron
 CRON_TZ=Asia/Taipei
 0 7 * * * cd /srv/news-station && bash scripts/cron-edition.sh morning
-30 17 * * * cd /srv/news-station && bash scripts/cron-edition.sh evening
+30 16 * * * cd /srv/news-station && bash scripts/cron-edition.sh evening
 ```
 
-若排程器固定使用 UTC，晨報用 `0 23 * * *`（台北日期的前一個 UTC 日），晚報用 `30 9 * * *`。排程時間是啟動採集的時間，實際發布取決於有無合格稿件及處理完成時間。
+若排程器固定使用 UTC，晨報用 `0 23 * * *`（台北日期的前一個 UTC 日），晚報用 `30 8 * * *`。排程時間是啟動採集的時間，實際發布取決於有無合格稿件及處理完成時間。
 
 私人 Sites 的入口憑證有有效期。外部作業機長期自動投遞時，需由具權限的服務在執行前注入有效憑證。入口拒絕存取時，本機期刊和報告仍可讀；更新憑證後重跑同一版次即可補送。
 

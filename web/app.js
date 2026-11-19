@@ -1,4 +1,4 @@
-const APP_RELEASE='0.1.9';
+const APP_RELEASE='0.1.10';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeLink = s => {try {const u=new URL(s);return u.protocol==='https:'?u.href:null}catch{return null}};

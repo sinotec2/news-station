@@ -100,19 +100,19 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.9');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.10');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.9');
+ assert.equal((await version.json()).version,'0.1.10');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.9'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.10'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.9']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.10']);
 });
 
 test('home opens the most recent published edition and preserves a reader’s manual switch',async()=>{

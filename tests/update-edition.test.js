@@ -44,10 +44,10 @@ async function fixture(t, selected = [article]) {
 }
 
 test('Taipei issue windows cover the preceding period across calendar boundaries', () => {
-  assert.equal(editionWindow('morning', '2027-01-01').start, '2026-12-31T09:30:00.000Z');
+  assert.equal(editionWindow('morning', '2027-01-01').start, '2026-12-31T08:30:00.000Z');
   assert.equal(editionWindow('morning', '2027-01-01').end, '2026-12-31T23:00:00.000Z');
   assert.equal(editionWindow('evening', '2027-01-01').start, '2026-12-31T23:00:00.000Z');
-  assert.equal(editionWindow('evening', '2027-01-01').end, '2027-01-01T09:30:00.000Z');
+  assert.equal(editionWindow('evening', '2027-01-01').end, '2027-01-01T08:30:00.000Z');
   assert.throws(() => editionWindow('morning', '2026-02-31'));
   assert.throws(() => editionWindow('noon', '2026-01-01'));
 });

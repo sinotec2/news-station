@@ -24,9 +24,12 @@ export function editionWindow(edition, date) {
   const midnight = Date.parse(date + 'T00:00:00+08:00');
   if (!Number.isFinite(midnight) || taipei.format(midnight) !== date) throw Error('Invalid Taipei date.');
   // Morning covers the preceding evening cutoff. Both slots use (start, end].
-  const hour = 3_600_000;
-  return {edition, date, start: iso(midnight + (edition === 'morning' ? -6.5 : 7) * hour),
-    end: iso(midnight + (edition === 'morning' ? 7 : 17.5) * hour)};
+  const minute = 60_000;
+  const morningCutoff = midnight + 7 * 60 * minute;
+  const eveningCutoff = midnight + (16 * 60 + 30) * minute;
+  return {edition, date,
+    start: iso(edition === 'morning' ? eveningCutoff - 24 * 60 * minute : morningCutoff),
+    end: iso(edition === 'morning' ? morningCutoff : eveningCutoff)};
 }
 
 async function reviewedPack(file, required) {
