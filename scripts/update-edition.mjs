@@ -10,27 +10,14 @@ import {loadSourceRegistry} from '../worker/source-registry.js';
 import {validateBriefing} from '../worker/editorial.js';
 import {checkEditionForAppend, withEditionLock, writeJsonAtomic} from './add-edition.mjs';
 import {buildReviewedArticles} from './editorial-selection.mjs';
+import {editionWindow, taipeiDate} from '../worker/edition-window.js';
+import {createScheduledEdition, emptyRunStatus, summarizeEditionRun} from '../worker/edition-generation.js';
+
+export {editionWindow};
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
-const taipei = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
-});
 const hash = value => createHash('sha256').update(value).digest('hex');
 const iso = millis => new Date(millis).toISOString();
-
-export function editionWindow(edition, date) {
-  if (!['morning', 'evening'].includes(edition)) throw Error('Edition must be morning or evening.');
-  if (!/^\d{4}-\d\d-\d\d$/.test(date)) throw Error('Expected a Taipei date as YYYY-MM-DD.');
-  const midnight = Date.parse(date + 'T00:00:00+08:00');
-  if (!Number.isFinite(midnight) || taipei.format(midnight) !== date) throw Error('Invalid Taipei date.');
-  // Morning covers the preceding evening cutoff. Both slots use (start, end].
-  const minute = 60_000;
-  const morningCutoff = midnight + 7 * 60 * minute;
-  const eveningCutoff = midnight + (16 * 60 + 30) * minute;
-  return {edition, date,
-    start: iso(edition === 'morning' ? eveningCutoff - 24 * 60 * minute : morningCutoff),
-    end: iso(edition === 'morning' ? morningCutoff : eveningCutoff)};
-}
 
 async function reviewedPack(file, required) {
   let text;
@@ -50,7 +37,7 @@ export async function updateEdition(options, dependencies = {}) {
   const {root = projectRoot, edition, dryRun = false, reviewedFile} = options;
   const {fetcher = fetch, collect = collectNews, select = buildReviewedArticles, now = Date.now} = dependencies;
   if (!dependencies.fetcher) http.setGlobalProxyFromEnv?.();
-  const date = options.date ?? taipei.format(now());
+  const date = options.date ?? taipeiDate(now());
   const window = editionWindow(edition, date);
   const slot = date + '-' + edition;
   const runDir = resolve(options.runDir ?? join(root, '.generated', 'edition-runs'), slot);
@@ -110,10 +97,9 @@ export async function updateEdition(options, dependencies = {}) {
         reserve, fetcher, reviewedArticles: pack.articles, now});
       report.selection_file = join(auditDir, 'selection.json');
       await writeJsonAtomic(join(runDir, report.selection_file), audit);
-      Object.assign(report, {http_requests: requests, sources_ok: collection.sources.filter(source => source.ok).length,
-        unique_events: collection.collection.unique_events, selected: articles.length});
-      report.coverage = audit.coverage;
       const decisions = audit.decisions ?? [];
+      Object.assign(report, summarizeEditionRun(collection, decisions, requests), {selected: articles.length});
+      report.coverage = audit.coverage;
       report.per_source = collection.sources.map(source => {
         const related = decisions.filter(d => d.source_id === source.source_id ||
           d.originals?.some(original => original.source_id === source.source_id));
@@ -123,16 +109,9 @@ export async function updateEdition(options, dependencies = {}) {
           pending_events: related.filter(d => d.status === 'pending').length};
       });
       if (dryRun && published?.id === slot + '-1') return await finish('already_published', published);
-      if (!articles.length) {
-        if (!report.sources_ok) return await finish('sources_unavailable');
-        return await finish('no_qualified_stories');
-      }
+      if (!articles.length) return await finish(emptyRunStatus(report, decisions));
       const completed = now();
-      const product = {
-        id: slot + '-1', date, edition, timezone: 'Asia/Taipei', window,
-        cutoff_at: iso(completed), published_at: iso(completed), label: edition === 'morning' ? '編輯晨報' : '編輯晚報',
-        version: 1, coverage_note: '本期依台北時間的晨晚報時段選稿，以已核對的原文資料出刊。', articles,
-      };
+      const product = createScheduledEdition(window, articles, completed);
       checkEditionForAppend(product, existing, {now: completed});
       if (!dryRun) await writeJsonAtomic(storePath, [...existing, product]);
       return await finish(dryRun ? 'dry_run_ready' : 'published', product);

@@ -1,4 +1,4 @@
-import {mkdir,readFile,writeFile,rm} from 'node:fs/promises';
+import {mkdir,readdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {parse} from 'yaml';
 import {build} from 'esbuild';
 import {validateBriefing} from './worker/editorial.js';
@@ -18,6 +18,24 @@ for(const edition of editions)validateBriefing(edition);
 const registry = parse(await readFile('SOURCE-REGISTRY.yaml', 'utf8'), {maxAliasCount: 0});
 const sources = loadSourceRegistry(registry);
 const settings = collectionLimits(registry.x_pipeline_proposal);
+const activeIds = new Set(sources.map(source => source.id));
+const editorialRegistry = {
+  sources: registry.sources.filter(source => activeIds.has(source.source_id)),
+  x_pipeline_proposal: registry.x_pipeline_proposal,
+};
+const reviewedDir = 'content/reviewed';
+const reviewedFiles = await readdir(reviewedDir).catch(error => {
+  if (error.code === 'ENOENT') return [];
+  throw error;
+});
+const reviewedPacks = {};
+for (const filename of reviewedFiles.sort()) {
+  if (!/^\d{4}-\d{2}-\d{2}-(morning|evening)\.json$/.test(filename)) continue;
+  const pack = JSON.parse(await readFile(reviewedDir + '/' + filename, 'utf8'));
+  const articles = Array.isArray(pack) ? pack : pack?.articles;
+  if (!Array.isArray(articles)) throw Error('Invalid reviewed articles in ' + filename);
+  reviewedPacks[filename.slice(0, -5)] = articles;
+}
 const client=await readFile('web/app.js','utf8');
 new Function(client);
 if(client.toLowerCase().includes('</script'))throw Error('Unexpected closing script tag');
@@ -26,6 +44,8 @@ await writeFile('.generated/edition-data.js','export const EDITIONS = '+JSON.str
 await writeFile('.generated/client-data.js','export const CLIENT_SCRIPT = '+JSON.stringify(client)+';\n');
 await writeFile('.generated/source-data.js',
   'export const SOURCES = ' + JSON.stringify(sources) + ';\n' +
+  'export const SOURCE_REGISTRY = ' + JSON.stringify(editorialRegistry) + ';\n' +
+  'export const REVIEWED_PACKS = ' + JSON.stringify(reviewedPacks) + ';\n' +
   'export const COLLECTION_SETTINGS = ' + JSON.stringify(settings) + ';\n');
 await build({
   entryPoints: ['worker/index.js'],

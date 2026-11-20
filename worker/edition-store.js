@@ -46,13 +46,28 @@ function bundledDay(bundled, date) {
 
 async function storedDay(bucket, date) {
   const object = await bucket.get(dayKey(date));
-  if (!object) return {etag: null, slots: {}};
+  if (!object) return {etag: null, slots: {}, leases: {}};
   const data = await object.json();
   if (data?.date !== date || !data.slots || !object.etag ||
       Object.entries(data.slots).some(([slot, edition]) => !SLOTS.includes(slot) || edition?.date !== date || edition.edition !== slot)) {
     throw problem(503, 'invalid_edition_store');
   }
-  return {etag: object.etag, slots: data.slots};
+  const leases = data.leases ?? {};
+  if (typeof leases !== 'object' || Array.isArray(leases) ||
+      Object.entries(leases).some(([slot, lease]) => !SLOTS.includes(slot) || !lease?.id || !Number.isFinite(lease.expiresAt))) {
+    throw problem(503, 'invalid_edition_store');
+  }
+  return {etag: object.etag, slots: data.slots, leases};
+}
+
+function writeDay(bucket, date, previous, slots, leases) {
+  const payload = {date, slots};
+  if (Object.keys(leases).length) payload.leases = leases;
+  return bucket.put(dayKey(date), JSON.stringify(payload), {
+    onlyIf: previous.etag ? {etagMatches: previous.etag} : {etagDoesNotMatch: '*'},
+    httpMetadata: {contentType: 'application/json'},
+    customMetadata: {published: Object.keys(slots).length ? '1' : '0'}
+  });
 }
 
 export async function getEditionForDate(env, bundled, date, slot) {
@@ -74,11 +89,12 @@ export async function readEditionPage(env, bundled, {before = null, limit = 14} 
   if (bucket) {
     let cursor;
     do {
-      const options = {prefix: PREFIX, limit: limit + 1 - storedDates.size};
+      const options = {prefix: PREFIX, limit: Math.max(32, limit + 1 - storedDates.size), include: ['customMetadata']};
       if (cursor) options.cursor = cursor;
       else if (before) options.startAfter = dayKey(before);
       const page = await bucket.list(options);
-      for (const {key} of page.objects) {
+      for (const {key, customMetadata} of page.objects) {
+        if (customMetadata?.published === '0') continue;
         const date = key.slice(-15, -5);
         if (validDate(date) && dayKey(date) === key && (!before || date < before)) {
           storedDates.add(date);
@@ -113,6 +129,61 @@ export async function readEditions(env, bundled) {
     before = page.next_before;
   } while (before);
   return editions.sort((a, b) => Date.parse(a.published_at) - Date.parse(b.published_at));
+}
+
+// Exact day reads bound the number of R2 subrequests even for a sparse or very old archive.
+export async function readRecentEditions(env, bundled, date, {days = 7} = {}) {
+  if (!validDate(date) || !Number.isInteger(days) || days < 1 || days > 31) throw problem(400, 'invalid_archive_page');
+  const midnight = Date.parse(date + 'T00:00:00Z');
+  const dates = Array.from({length: days}, (_, i) => new Date(midnight - (days - i - 1) * 86400000).toISOString().slice(0, 10));
+  const result = [];
+  for (let i = 0; i < dates.length; i += 4) {
+    const part = await Promise.all(dates.slice(i, i + 4).map(async day => {
+      const shipped = bundledDay(bundled, day);
+      const stored = env?.EDITION_BUCKET && !(shipped.morning && shipped.evening) ? (await storedDay(env.EDITION_BUCKET, day)).slots : {};
+      return SLOTS.map(slot => shipped[slot] || stored[slot]).filter(Boolean);
+    }));
+    result.push(...part.flat());
+  }
+  return result;
+}
+
+function refreshBucket(env, date, slot) {
+  if (!validDate(date) || !SLOTS.includes(slot)) throw problem(422, 'invalid_edition_slot');
+  if (!env?.EDITION_BUCKET) throw problem(503, 'edition_store_unavailable');
+  return env.EDITION_BUCKET;
+}
+
+// Put the lease in the same CAS object as the published slot. Once another worker
+// owns it, an older runner cannot publish or release its replacement's lease.
+export async function claimEditionRefresh(env, bundled, date, slot, {now = Date.now(), ttlMs = 180000} = {}) {
+  const bucket = refreshBucket(env, date, slot);
+  if (!Number.isFinite(now) || !Number.isFinite(ttlMs) || ttlMs < 1 || ttlMs > 600000) throw problem(400, 'invalid_refresh_duration');
+  const shipped = bundledDay(bundled, date)[slot];
+  if (shipped) return {status: 'already_published', edition: shipped};
+  const lease = {id: crypto.randomUUID(), expiresAt: now + ttlMs};
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const day = await storedDay(bucket, date);
+    if (day.slots[slot]) return {status: 'already_published', edition: day.slots[slot]};
+    const current = day.leases[slot];
+    if (current && current.expiresAt > now) return {status: 'in_progress', expiresAt: current.expiresAt};
+    const result = await writeDay(bucket, date, day, day.slots, {...day.leases, [slot]: lease});
+    if (result) return {status: 'claimed', leaseId: lease.id, expiresAt: lease.expiresAt};
+  }
+  throw problem(503, 'publication_busy');
+}
+
+export async function releaseEditionRefresh(env, date, slot, leaseId) {
+  const bucket = refreshBucket(env, date, slot);
+  if (!leaseId) return false;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const day = await storedDay(bucket, date);
+    if (day.leases[slot]?.id !== leaseId) return false;
+    const leases = {...day.leases};
+    delete leases[slot];
+    if (await writeDay(bucket, date, day, day.slots, leases)) return true;
+  }
+  throw problem(503, 'publication_busy');
 }
 
 function validateNewEdition(edition, trusted) {
@@ -159,8 +230,11 @@ function checkSameDay(morning, evening) {
   }
 }
 
-async function publishEdition(bucket, bundled, edition) {
+export async function publishEdition(env, bundled, edition, {leaseId, now} = {}) {
+  const bucket = env?.EDITION_BUCKET;
+  if (!bucket) throw problem(503, 'edition_store_unavailable');
   if (!validDate(edition?.date) || !SLOTS.includes(edition.edition)) throw problem(422, 'invalid_edition');
+  if (new TextEncoder().encode(JSON.stringify(edition)).byteLength > MAX_BYTES) throw problem(413, 'body_too_large');
   const date = edition.date, slot = edition.edition;
   const bundledSlots = bundledDay(bundled, date);
   const trusted = bundledSlots[slot];
@@ -174,13 +248,16 @@ async function publishEdition(bucket, bundled, edition) {
       if (!identical(existing, edition)) throw problem(409, 'slot_already_published');
       return {...receipt, created: false};
     }
+    const activeLease = day.leases[slot];
+    const at = now ?? Date.now();
+    if (leaseId && (activeLease?.id !== leaseId || activeLease.expiresAt <= at)) throw problem(409, 'refresh_lease_lost');
+    if (!leaseId && activeLease?.expiresAt > at) throw problem(409, 'refresh_in_progress');
     const slots = {...day.slots, [slot]: edition};
     const effective = {...slots, ...bundledSlots};
     checkSameDay(effective.morning, effective.evening);
-    const stored = await bucket.put(dayKey(date), JSON.stringify({date, slots}), {
-      onlyIf: day.etag ? {etagMatches: day.etag} : {etagDoesNotMatch: '*'},
-      httpMetadata: {contentType: 'application/json'}
-    });
+    const leases = {...day.leases};
+    delete leases[slot];
+    const stored = await writeDay(bucket, date, day, slots, leases);
     if (stored) return {...receipt, created: true};
   }
   throw problem(503, 'publication_busy');
@@ -236,7 +313,7 @@ export async function handleEditionPublish(request, env, bundled) {
   }
   try {
     const edition = await readBody(request);
-    const receipt = await publishEdition(env.EDITION_BUCKET, bundled, edition);
+    const receipt = await publishEdition(env, bundled, edition);
     return response(receipt, receipt.created ? 201 : 200);
   } catch (error) {
     return response({error: error.code || 'edition_store_unavailable', ...(error.status === 422 ? {detail: error.message} : {})}, error.status || 503);

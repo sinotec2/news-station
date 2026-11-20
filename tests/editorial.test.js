@@ -100,19 +100,19 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.10');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.11');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.10');
+ assert.equal((await version.json()).version,'0.1.11');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.10'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.11'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.10']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.11']);
 });
 
 test('home opens the most recent published edition and preserves a reader’s manual switch',async()=>{
@@ -349,4 +349,79 @@ test('archive pagination retries the same cursor, merges once and keeps the sele
  assert.match(h.node('#body').innerHTML,/older-edition/);
  assert.doesNotMatch(h.node('#body').innerHTML,/data-action="older-editions"|503/);
  assert.equal(paths.filter(path=>path==='/api/audio').length,1);
+});
+
+test('home refresh publishes via a single POST, loads the due issue, and stops playback only on a switch',async()=>{
+ const [morning,evening]=editions;
+ const h=clientHarness();
+ const audio=h.node('#neural-audio');
+ Object.assign(audio,{play:async()=>{audio.paused=false},pause(){audio.paused=true},load(){},removeAttribute(){}});
+ const calls=[];
+ let releasePost;
+ let listed=[morning];
+ h.context.fetch=async(path,options={})=>{
+  calls.push({path,options});
+  if(path==='/api/editions')return Response.json({editions:listed});
+  if(path==='/api/audio/status')return Response.json({ready:true,voice:'cedar'});
+  if(path==='/api/audio')return new Response(new Uint8Array(48),{headers:{'Content-Type':'audio/wav','X-Audio-Voice':'cedar','X-Audio-Expires-At':String(Date.now()+60000)}});
+  assert.equal(path,'/api/editions/refresh');
+  return new Promise(resolve=>{releasePost=(status,issue)=>resolve(Response.json({status,edition:issue.edition,date:issue.date,edition_id:issue.id}))});
+ };
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ const click=dataset=>h.handlers.get('click')({target:{closest:()=>({dataset})}});
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await tick();
+ assert.match(h.node('#body').innerHTML,/data-action="refresh-edition"[^>]*>更新新聞/);
+ click({neural:'0'});await tick();
+ const firstAudio=audio.src;
+ assert.ok(firstAudio);
+ click({action:'refresh-edition'});click({action:'refresh-edition'});
+ assert.match(h.node('#body').innerHTML,/disabled>更新中/);
+ const posts=()=>calls.filter(c=>c.path==='/api/editions/refresh');
+ assert.equal(posts().length,1);
+ assert.equal(posts()[0].options.method,'POST');
+ assert.equal(posts()[0].options.credentials,'same-origin');
+ assert.equal(posts()[0].options.body,undefined);
+ releasePost('already_published',morning);await tick();
+ assert.equal(audio.src,firstAudio);assert.equal(audio.paused,false);
+ assert.match(h.node('#body').innerHTML,/晨報 已是最新一期/);
+ click({action:'refresh-edition'});listed=[evening];
+ releasePost('published',evening);await tick();
+ assert.equal(audio.paused,true);assert.equal(h.node('#neural-player').hidden,true);
+ assert.equal(vm.runInContext('current().id',h.context),evening.id);
+ assert.ok(vm.runInContext('state.published',h.context).some(e=>e.id===morning.id));
+ assert.equal(calls.filter(c=>c.path==='/api/editions'&&c.options.cache==='no-store').length,3);
+ assert.match(h.node('#body').innerHTML,/晚報 已發布，?共 9 則/);
+});
+
+test('home refresh on an empty or archived station reports recoverable outcomes and preserves prior news',async()=>{
+ const [morning]=editions;
+ const h=clientHarness();
+ let listed=[];
+ let outcome={status:'no_qualified_stories',unique_events:17,pending_review:4};
+ let http=200;
+ h.context.fetch=async path=>{
+  if(path==='/api/editions')return Response.json({editions:listed});
+  if(path==='/api/audio/status')return Response.json({ready:false});
+  assert.equal(path,'/api/editions/refresh');
+  return Response.json({date:morning.date,edition:morning.edition,...outcome},{status:http});
+ };
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ const refresh=()=>vm.runInContext('refreshEdition()',h.context);
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await tick();
+ assert.match(h.node('#body').innerHTML,/更新新聞/);
+ await refresh();
+ assert.match(h.node('#body').innerHTML,/role="status" aria-live="polite">共收集 17 則候選/);
+ assert.match(h.node('#body').innerHTML,/4 則待核對/);
+ listed=[morning];await vm.runInContext('loadEditions()',h.context);
+ for(const [result,status,message] of [
+  [{status:'in_progress'},202,/正在更新中/],
+  [{status:'sources_unavailable'},200,/無法取得新聞來源/],
+  [{error:'edition_store_unavailable'},503,/無法連上期刊庫/],
+  [{status:'published',edition_id:'missing-issue'},200,/尚未回傳這一期/],
+ ]){
+  outcome=result;http=status;await refresh();
+  assert.match(h.node('#body').innerHTML,message);
+  assert.equal(vm.runInContext('current().id',h.context),morning.id);
+  assert.ok(h.node('#list').innerHTML.includes(morning.articles[0].title));
+ }
 });

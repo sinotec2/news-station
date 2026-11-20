@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {createContext, runInContext} from 'node:vm';
+import {build} from 'esbuild';
 import {readSource} from '../worker/news-feed.js';
 import {loadSourceRegistry} from '../worker/source-registry.js';
 import {validateBriefing} from '../worker/editorial.js';
@@ -32,6 +34,21 @@ function run(items,overrides={}) {
     now,deadline:Date.now()+5000,reserve:()=>true,fetcher:async()=>new Response(page(),{headers:{'content-type':'text/html'}})};
   return buildReviewedArticles({...options,...overrides});
 }
+
+test('the browser Worker selects a reviewed article with the same body fingerprint as the CLI', async () => {
+  const bundle = await build({entryPoints:['worker/editorial-selection.js'],bundle:true,platform:'browser',
+    write:false,format:'iife',globalName:'Selection'});
+  const context = createContext({URL, TextEncoder, TextDecoder, crypto, atob, AbortSignal, Response});
+  runInContext(bundle.outputFiles[0].text, context);
+  const registry={sources:entries};
+  const options={registry,sources:loadSourceRegistry(registry),existing:[],collection:{items:[story()],collected_at:end},
+    window,now,deadline:Date.now()+5000,reserve:()=>true,reviewedArticles:[reviewed],
+    fetcher:async()=>new Response(page(),{headers:{'content-type':'text/html'}})};
+  const workerResult=await context.Selection.buildReviewedArticles(options);
+  assert.deepEqual(workerResult.articles.map(a=>a.id).join(','),reviewed.id);
+  assert.equal(workerResult.decisions[0].originals[0].body_sha256,hash(body));
+  assert.deepEqual(JSON.parse(JSON.stringify(workerResult)),await buildReviewedArticles(options));
+});
 
 test('CISA original catalogue additions produce sourced Chinese stories without inferring a discovery date',async()=>{
   const rec={cveID:'CVE-2026-12345',vendorProject:'Example',product:'Gateway',dateAdded:'2026-11-18',dueDate:'2026-12-02',

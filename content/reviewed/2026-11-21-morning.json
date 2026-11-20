@@ -1,0 +1,237 @@
+{
+  "articles": [
+    {
+      "id": "moenv-antalya-ai-pledge-20261120",
+      "event_id": "cop31-antalya-ai-pledge-taiwan",
+      "topic": "AI",
+      "editorial_kind": "policy_statement",
+      "title": "環境部回應安塔利亞人工智慧承諾，聚焦伺服器供應鏈減碳",
+      "excerpt": "環境部長彭啓明表示，台灣支持在聯合國氣候大會期間提出的人工智慧承諾。他點出一層供應鏈關係：台灣廠商製造設備與用電產生的排放，也會影響國際客戶的排放盤查。",
+      "newsworthiness": "把人工智慧設備製造、電力來源與國際客戶的供應鏈碳盤查連在一起。",
+      "analysis": "設備供應商向客戶說明產品碳足跡時，製程燃料與用電資料分別由誰掌握，會影響可追溯性。",
+      "uncertainty": "這份新聞稿記錄台灣的政策表態，並未列出各家供應商的排放量或新的強制減量期限。",
+      "speech_script": "在安塔利亞氣候大會上，土耳其和國際電信聯盟共同發起人工智慧承諾。環境部長彭啓明表示支持。他指出，台灣廠商製造設備和用電產生的排放，也會反映在國際客戶的供應鏈排放中。這次公告談的是政策方向。",
+      "status": "edited",
+      "verification_status": "official_statement",
+      "source": "台灣環境部",
+      "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14537",
+      "source_urls": [
+        "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14537"
+      ],
+      "date": "2026-11-20T20:11:55.000+08:00",
+      "verified_at": "2026-11-20T23:28:10.015Z",
+      "facts": [
+        "環境部說，這項人工智慧承諾由本屆氣候大會主席國土耳其和國際電信聯盟共同發起。",
+        "彭啓明於十一月二十日表示支持，提出讓台灣成為低碳人工智慧產業示範地的願景。",
+        "部長指出，國際科技企業的供應鏈排放，有一部分來自台灣廠商的直接排放與外購能源相關排放。"
+      ],
+      "evidence": [
+        {
+          "fact": "環境部說，這項人工智慧承諾由本屆氣候大會主席國土耳其和國際電信聯盟共同發起。",
+          "support": "開頭交代大會地點、主席國與聯合發起單位。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14537",
+          "origin_id": "moenv-antalya-ai-pledge-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d43311b6cdac060f12ba3399215ca830775379b2cd31ebdc087f2db546534200"
+        },
+        {
+          "fact": "彭啓明於十一月二十日表示支持，提出讓台灣成為低碳人工智慧產業示範地的願景。",
+          "support": "首段記錄部長回應日期，後文說明低碳示範的政策願景。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14537",
+          "origin_id": "moenv-antalya-ai-pledge-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d43311b6cdac060f12ba3399215ca830775379b2cd31ebdc087f2db546534200"
+        },
+        {
+          "fact": "部長指出，國際科技企業的供應鏈排放，有一部分來自台灣廠商的直接排放與外購能源相關排放。",
+          "support": "供應鏈段落分別談到國際客戶的範疇三，以及台灣廠商的範疇一與範疇二。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14537",
+          "origin_id": "moenv-antalya-ai-pledge-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d43311b6cdac060f12ba3399215ca830775379b2cd31ebdc087f2db546534200"
+        }
+      ],
+      "selection_reason": "把人工智慧設備製造、電力來源與國際客戶的供應鏈碳盤查連在一起。",
+      "correction_history": []
+    },
+    {
+      "id": "moenv-carbon-market-forum-20261120",
+      "event_id": "moenv-foreign-carbon-credit-draft-20261112",
+      "topic": "環境",
+      "editorial_kind": "policy_followup",
+      "title": "國外碳權草案仍在預告，環境部論壇討論登記與前期查證",
+      "excerpt": "環境部十一月二十日舉辦巴黎協定第六條論壇，討論跨境減量專案如何留下可查證的紀錄。環境部在會後說明，國外減量額度認可準則仍在徵詢意見。",
+      "newsworthiness": "接續前期國外減量額度草案報導，補入論壇對交易登記和跨境專案查證的實務說明。",
+      "analysis": "採購國外額度的單位可以分開追蹤兩件事：專案如何登記與查證，以及台灣最後採用哪些認可條件。",
+      "uncertainty": "論壇發言說明各機構的作法與建議。正式認可條件仍須等主管機關公布定案。",
+      "speech_script": "環境部在十一月二十日邀集各界討論跨境碳市場。碳權交易所說明額度與登記系統的銜接，國合會則談到協助友邦建立減量查證能力。環境部表示，國外減量額度認可準則還在草案預告階段。",
+      "status": "edited",
+      "verification_status": "official_statement",
+      "source": "台灣環境部",
+      "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14536",
+      "source_urls": [
+        "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14536"
+      ],
+      "date": "2026-11-20T19:24:56.000+08:00",
+      "verified_at": "2026-11-20T23:28:10.015Z",
+      "facts": [
+        "環境部十一月二十日召開論壇，主題是巴黎協定第六條下的碳市場發展。",
+        "台灣碳權交易所總經理陳脩文表示，碳交所引進符合國際核心碳原則的額度，並建置數位登記對接。",
+        "國合會代表表示，協助友邦建立減量的量測、報告與查證能力，是降低民間資金進場門檻的一項前期工作。",
+        "環境部重申，十一月十二日預告的國外減量額度認可準則仍在徵詢意見。"
+      ],
+      "evidence": [
+        {
+          "fact": "環境部十一月二十日召開論壇，主題是巴黎協定第六條下的碳市場發展。",
+          "support": "新聞稿首段交代論壇主辦單位、日期及主題。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14536",
+          "origin_id": "moenv-carbon-market-forum-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d2482912bd9d4adf26047a55dac250c39cfd30d2d15d099b1ab52cfd33502eae"
+        },
+        {
+          "fact": "台灣碳權交易所總經理陳脩文表示，碳交所引進符合國際核心碳原則的額度，並建置數位登記對接。",
+          "support": "介紹碳交所發言的段落列出額度標準和登記工作。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14536",
+          "origin_id": "moenv-carbon-market-forum-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d2482912bd9d4adf26047a55dac250c39cfd30d2d15d099b1ab52cfd33502eae"
+        },
+        {
+          "fact": "國合會代表表示，協助友邦建立減量的量測、報告與查證能力，是降低民間資金進場門檻的一項前期工作。",
+          "support": "介紹國合會劉玲君發言的段落提到友邦的 MRV 基礎和降低民間投資門檻。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14536",
+          "origin_id": "moenv-carbon-market-forum-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d2482912bd9d4adf26047a55dac250c39cfd30d2d15d099b1ab52cfd33502eae"
+        },
+        {
+          "fact": "環境部重申，十一月十二日預告的國外減量額度認可準則仍在徵詢意見。",
+          "support": "末段明載草案預告日期、目前的預告狀態及意見徵詢。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14536",
+          "origin_id": "moenv-carbon-market-forum-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "d2482912bd9d4adf26047a55dac250c39cfd30d2d15d099b1ab52cfd33502eae"
+        }
+      ],
+      "selection_reason": "接續前期國外減量額度草案報導，補入論壇對交易登記和跨境專案查證的實務說明。",
+      "correction_history": [],
+      "event_update": true,
+      "new_facts": [
+        "環境部十一月二十日召開論壇，主題是巴黎協定第六條下的碳市場發展。",
+        "台灣碳權交易所總經理陳脩文表示，碳交所引進符合國際核心碳原則的額度，並建置數位登記對接。",
+        "國合會代表表示，協助友邦建立減量的量測、報告與查證能力，是降低民間資金進場門檻的一項前期工作。"
+      ]
+    },
+    {
+      "id": "moenv-urban-forest-heat-20261120",
+      "event_id": "urban-canopy-climate-adaptation-20261119",
+      "topic": "環境",
+      "editorial_kind": "public_planning",
+      "title": "都市林如何降溫？環境部講座談樹冠，也談地下根系與排水",
+      "excerpt": "環境部在十一月十九日的都市綠化講座，以東京大手町之森討論降溫案例。講者提醒，工程設計除了安排樹種和遮蔭，還要看土壤、排水與地下管線能否支撐長期生長。",
+      "newsworthiness": "把都市熱調適與道路、公園工程的土壤和地下空間設計連結起來。",
+      "analysis": "規劃人行道或公園工程時，可以把地下管線、排水及根系空間一起放進設計圖，並提早確認完工後的養護責任。",
+      "uncertainty": "環境部引述的溫差是東京個案。新聞稿未提供完整量測條件，無法據此估算台灣個別場址的降溫幅度。",
+      "speech_script": "都市綠化的成效，也取決於地下。環境部講座分享東京大手町之森的案例，提到林內溫度低約攝氏一點四度。講者詹鳳春提醒，道路下方的管線、土壤硬化和排水，都會影響樹根生長。東京的數字仍要放回當地的條件來看。",
+      "status": "edited",
+      "verification_status": "official_statement",
+      "source": "台灣環境部",
+      "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14534",
+      "source_urls": [
+        "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14534"
+      ],
+      "date": "2026-11-20T16:54:37.000+08:00",
+      "verified_at": "2026-11-20T23:28:10.015Z",
+      "facts": [
+        "環境部十一月十九日舉辦都市綠化講座，邀詹鳳春談都市林的規劃與養護。",
+        "環境部引述東京大手町之森的案例，指出林內溫度約低攝氏一點四度。",
+        "詹鳳春指出，都市植栽常遇到土壤硬化、排水不良、地下管線與根系空間不足等問題。"
+      ],
+      "evidence": [
+        {
+          "fact": "環境部十一月十九日舉辦都市綠化講座，邀詹鳳春談都市林的規劃與養護。",
+          "support": "十一月二十日新聞稿首段記載講座於前一天舉辦及講者姓名。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14534",
+          "origin_id": "moenv-urban-forest-heat-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "b8257778143e5a8e1fb0989cdcf11d4452b48bb9e4df6261f774697ef8d572e3"
+        },
+        {
+          "fact": "環境部引述東京大手町之森的案例，指出林內溫度約低攝氏一點四度。",
+          "support": "介紹東京案例的段落列出地點、遮蔭及保水等機制，以及約一點四度的數值。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14534",
+          "origin_id": "moenv-urban-forest-heat-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "b8257778143e5a8e1fb0989cdcf11d4452b48bb9e4df6261f774697ef8d572e3"
+        },
+        {
+          "fact": "詹鳳春指出，都市植栽常遇到土壤硬化、排水不良、地下管線與根系空間不足等問題。",
+          "support": "講者說明地下生長環境的段落逐項列出都市常見限制。",
+          "url": "https://enews.moenv.gov.tw/moenv-news/zh-tw/News/14534",
+          "origin_id": "moenv-urban-forest-heat-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "b8257778143e5a8e1fb0989cdcf11d4452b48bb9e4df6261f774697ef8d572e3"
+        }
+      ],
+      "selection_reason": "把都市熱調適與道路、公園工程的土壤和地下空間設計連結起來。",
+      "correction_history": []
+    },
+    {
+      "id": "openai-distillation-safeguards-20261120",
+      "event_id": "openai-distillation-safeguards-20261120",
+      "topic": "資安",
+      "editorial_kind": "first_party_assessment",
+      "title": "OpenAI 公布模型推理資料防護測試，說明兩代模型的結果差異",
+      "excerpt": "OpenAI 表示，已加強 GPT-6.2 Astra 和 Sol 對內部推理資料的保護，並公布一項針對 Astra 的內部測試。測試衡量特定條件下能否取得受保護資料，未涵蓋所有部署狀況。",
+      "newsworthiness": "量化雲端模型隱私防護的同時，保留測試範圍與廠商自行評估的限制。",
+      "analysis": "採購或管理模型服務時，應同時記下被測模型、測試情境和指標，再判斷指標是否對應自己的風險。",
+      "uncertainty": "數值來自 OpenAI 的內部評估。模型與防護配置同時更換，不能單憑這組數字拆出單一措施的效果。",
+      "speech_script": "OpenAI 表示，已加強兩款新模型對內部推理資料的保護。公司在一項內部測試中，比較能否取得較早一次請求的推理資料。舊版配置的平均成功率是百分之五十四，新版配置是百分之零點二。這組數字適用於該項測試。",
+      "status": "edited",
+      "verification_status": "official_statement",
+      "source": "OpenAI 新聞室",
+      "url": "https://openai.com/index/combatting-adversarial-distillation/",
+      "source_urls": [
+        "https://openai.com/index/combatting-adversarial-distillation/"
+      ],
+      "date": "2026-11-20T10:00:00.000Z",
+      "verified_at": "2026-11-20T23:28:10.015Z",
+      "facts": [
+        "OpenAI 表示，已更新 GPT-6.2 Astra 和 GPT-6.2 Sol 的防護，降低內部推理資料外流的風險。",
+        "在針對先前請求的內部測試中，OpenAI 報告 GPT-6 Astra 原防護配置的平均取得成功率為 54.0%，GPT-6.2 Astra 更新配置為 0.2%。",
+        "OpenAI 說，發現未授權的蒸餾活動後會調查相關帳號，並與其他模型供應商分享可供調查的線索。"
+      ],
+      "evidence": [
+        {
+          "fact": "OpenAI 表示，已更新 GPT-6.2 Astra 和 GPT-6.2 Sol 的防護，降低內部推理資料外流的風險。",
+          "support": "原文開頭點名兩款模型，說明本次更新要保護的資料類型。",
+          "url": "https://openai.com/index/combatting-adversarial-distillation/",
+          "origin_id": "openai-distillation-safeguards-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "ac41111737fff1583cef0bbcfcb81b2a69fcd4289d93097346d98f4ddbed1d42"
+        },
+        {
+          "fact": "在針對先前請求的內部測試中，OpenAI 報告 GPT-6 Astra 原防護配置的平均取得成功率為 54.0%，GPT-6.2 Astra 更新配置為 0.2%。",
+          "support": "文章的自適應盲測比較表在較早請求這一列，分別列出兩款 Astra 及防護配置的結果。",
+          "url": "https://openai.com/index/combatting-adversarial-distillation/",
+          "origin_id": "openai-distillation-safeguards-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "ac41111737fff1583cef0bbcfcb81b2a69fcd4289d93097346d98f4ddbed1d42"
+        },
+        {
+          "fact": "OpenAI 說，發現未授權的蒸餾活動後會調查相關帳號，並與其他模型供應商分享可供調查的線索。",
+          "support": "文章說明帳號調查與跨供應商協作的段落，界定這是公司報告的處置方式。",
+          "url": "https://openai.com/index/combatting-adversarial-distillation/",
+          "origin_id": "openai-distillation-safeguards-20261120-statement",
+          "review_state": "original_read",
+          "original_sha256": "ac41111737fff1583cef0bbcfcb81b2a69fcd4289d93097346d98f4ddbed1d42"
+        }
+      ],
+      "selection_reason": "量化雲端模型隱私防護的同時，保留測試範圍與廠商自行評估的限制。",
+      "correction_history": [],
+      "source_published_precision": "date",
+      "date_source": "feed"
+    }
+  ]
+}

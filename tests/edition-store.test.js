@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {bucket} from './fixtures/edition-bucket.js';
 import {editions as bundled} from './fixtures/editions.js';
-import {getEditionForDate, handleEditionPublish, readEditionPage, readEditions} from '../worker/edition-store.js';
+import {getEditionForDate, handleEditionPublish, readEditionPage, readEditions,
+  claimEditionRefresh, releaseEditionRefresh, publishEdition, readRecentEditions} from '../worker/edition-store.js';
 
 const template = bundled.find(e => e.edition === 'evening');
 
@@ -15,31 +17,6 @@ function edition(date, slot, name = slot) {
   item.articles = [item.articles[0]];
   Object.assign(item.articles[0], {id: 'story-' + name, event_id: name, date: item.cutoff_at, verified_at: item.cutoff_at});
   return item;
-}
-
-function bucket(pageSize = Infinity) {
-  const objects = new Map();
-  let serial = 0;
-  return {
-    objects,
-    async get(key) {
-      const stored = objects.get(key);
-      return stored ? {etag: stored.etag, json: async () => JSON.parse(stored.data)} : null;
-    },
-    async put(key, data, {onlyIf}) {
-      const existing = objects.get(key);
-      if (onlyIf.etagDoesNotMatch === '*' && existing) return null;
-      if (onlyIf.etagMatches && onlyIf.etagMatches !== existing?.etag) return null;
-      const etag = (++serial).toString();
-      objects.set(key, {data, etag});
-      return {etag};
-    },
-    async list({prefix, limit, startAfter, cursor}) {
-      const keys = [...objects.keys()].filter(k => k.startsWith(prefix) && k > (cursor || startAfter || '')).sort();
-      const selected = keys.slice(0, Math.min(pageSize, limit));
-      return {objects: selected.map(key => ({key})), cursor: selected.at(-1), truncated: selected.length < keys.length};
-    }
-  };
 }
 
 const envFor = editionBucket => ({EDITION_BUCKET: editionBucket, EDITION_PUBLISH_TOKEN: 'fixture-key'});
@@ -156,4 +133,49 @@ test('legacy canonical seeds are idempotent, bundled corrections win reads, arch
   const full = await readEditions(env, newBundled);
   assert.equal(full.length, 5);
   assert.equal(full.at(-2).label, '更正版');
+});
+
+test('cross-worker claims coalesce before generation and are fenced across expiration, release and publish', async () => {
+  const env=envFor(bucket());
+  const date='2026-11-14', slot='morning', now=Date.now(), product=edition(date,slot);
+  const acquire=(at=now)=>claimEditionRefresh(env,[],date,slot,{now:at,ttlMs:1000});
+  const contenders=await Promise.all([acquire(),acquire(),acquire()]);
+  assert.equal(contenders.filter(c=>c.status==='in_progress').length,2);
+  const winner=contenders.find(c=>c.status==='claimed');
+  assert.ok(winner.leaseId);
+  assert.equal((await post(env, product)).status,409);
+  await assert.rejects(publishEdition(env,[],product,{leaseId:winner.leaseId,now:now+1000}),{code:'refresh_lease_lost'});
+  const replacement=await acquire(now+1001);
+  assert.equal(replacement.status,'claimed');
+  assert.notEqual(winner.leaseId,replacement.leaseId);
+  assert.equal(await releaseEditionRefresh(env,date,slot,winner.leaseId),false);
+  await assert.rejects(publishEdition(env,[],product,{leaseId:winner.leaseId,now:now+1001}),{code:'refresh_lease_lost'});
+  const opposite=await claimEditionRefresh(env,[],date,'evening',{now,ttlMs:3000});
+  assert.equal(opposite.status,'claimed');
+  assert.equal((await publishEdition(env,[],product,{leaseId:replacement.leaseId,now:now+1001})).created,true);
+  assert.equal(await releaseEditionRefresh(env,date,slot,replacement.leaseId),false);
+  assert.equal((await claimEditionRefresh(env,[],date,'evening',{now:now+1001})).status,'in_progress');
+  assert.deepEqual(await acquire(now+5000),{status:'already_published',edition:product});
+  assert.equal(await releaseEditionRefresh(env,date,'evening',opposite.leaseId),true);
+});
+
+test('history point-reads only requested days, includes both target slots, and hides unpublished lease-only dates',async()=>{
+  const storage=bucket(),env=envFor(storage);
+  const outside=edition('2026-11-10','morning');
+  const included=edition('2026-11-13','morning');
+  const today=edition('2026-11-14','evening');
+  const shipped=edition(today.date,'morning');
+  for(const e of [outside,included,today])await publishEdition(env,[],e);
+  const unfilled=await claimEditionRefresh(env,[],'2026-11-15','morning');
+  const live=await readEditionPage(env,[shipped],{limit:2});
+  assert.deepEqual(live.editions.map(e=>e.id),[today.id,shipped.id,included.id]);
+  assert.equal(live.next_before,included.date);
+  assert.equal(await releaseEditionRefresh(env,'2026-11-15','morning',unfilled.leaseId),true);
+  assert.deepEqual((await readEditionPage(env,[],{limit:1})).editions,[today]);
+  const calls=[];const get=storage.get;storage.get=key=>{calls.push(key);return get(key)};
+  storage.list=()=>assert.fail('history must not scan archive lists');
+  assert.deepEqual((await readRecentEditions(env,[shipped],today.date,{days:2})).map(e=>e.id),[included.id,shipped.id,today.id]);
+  assert.equal(calls.length,2);
+  await assert.rejects(readRecentEditions(env,[],'invalid'),{code:'invalid_archive_page'});
+  await assert.rejects(claimEditionRefresh({},[],today.date,'morning'),{code:'edition_store_unavailable'});
 });
