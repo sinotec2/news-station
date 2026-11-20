@@ -1,6 +1,7 @@
 import {validateBriefing, validateReviewedEvidence} from './editorial.js';
 import {safeUrl} from './source-registry.js';
 import {reviewOriginal} from './original-article.js';
+import {enrichCveArticle} from './product-context.js';
 
 function address(value) {
   const valid = safeUrl(value);
@@ -59,8 +60,9 @@ function catalogueArticle(item, source, checkedAt) {
     supports.push('requiredAction 欄載明對本條目的處置指示。');
   }
   // The feed exposes a civil date, not an hour; only use this anchor for storage and comparisons.
-  return {
+  return enrichCveArticle({
     id:eventId, event_id:eventId, status:'edited', verification_status:'official_statement',
+    affected_product:{vendor:rec.vendor.trim(), product:rec.product.trim()},
     topic:'資安', source:source.name, url:item.url, source_urls:[item.url,catalogue],
     date:rec.added + 'T00:00:00Z', source_published_precision:'date', verified_at:checkedAt,
     title:product + ' 漏洞列入美國已知遭利用目錄（' + rec.cve + '）',
@@ -74,7 +76,7 @@ function catalogueArticle(item, source, checkedAt) {
     speech_script:'美國資安主管機關將 ' + product + ' 的 ' + rec.cve + ' 列入已知遭利用漏洞目錄。目錄是在' + added +
       '新增這筆資料，列出的處置期限是' + due + '。使用相關產品的單位，可以先核對設備與版本，再依官方指引評估處置。',
     correction_history:[],
-  };
+  });
 }
 
 function priority(title, topic, date, end) {
@@ -231,7 +233,7 @@ export async function buildReviewedArticles({collection, sources, registry, exis
           ? 'previously_published' : 'needs_fact_review_and_chinese_copy';
         continue;
       }
-      try {article=validatedPack(approved,primary,originals,raw.get(primary.source_id),edition);}
+      try {article=enrichCveArticle(validatedPack(approved,primary,originals,raw.get(primary.source_id),edition));}
       catch(error){decision.reason='review_invalid';decision.detail=error.message;continue;}
     }
     if (!inWindow(time,window,dayOnly)) {decision.reason='outside_window';continue;}
@@ -251,6 +253,10 @@ export async function buildReviewedArticles({collection, sources, registry, exis
     if (articles.length>=limit) {decision.reason='edition_limit';continue;}
     topics.add(decision.topic);regions.add(decision.region);articles.push(article);
     decision.status='selected';decision.reason='reviewed_facts';decision.article_id=article.id;
+    if (article.affected_product && !article.product_context) {
+      decision.affected_product=article.affected_product;
+      decision.product_context_review='needs_official_product_intro';
+    }
   }
   const configured=registry.x_pipeline_proposal ?? {}, gaps=[];
   for (const [field,minima] of [['topic',configured.topic_minimums],['region',configured.region_minimums]]) {

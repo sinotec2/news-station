@@ -4,7 +4,9 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {candidateDecision,validateBriefing,speechSegments} from '../worker/editorial.js';
 import worker from '../worker/index.js';
+import {enrichEdition} from '../worker/product-context.js';
 import {editions} from './fixtures/editions.js';
+import {clientHarness} from './fixtures/client-harness.js';
 test('routine SDK updates stay technical; genuine security fixes receive review',()=>{
  const item={title:'v3.52.0',url:'https://github.com/openai/openai-python/releases/tag/v3.52.0',excerpt:'Features: add schedule pause reasons'};
  assert.equal(candidateDecision(item).lane,'technical');
@@ -37,7 +39,7 @@ test('the production bundle serves the configured archive grouped by date and ed
   if(before){assert.ok(!cursors.has(before),'archive cursor must advance');cursors.add(before)}
  }while(before);
  const byId=(a,b)=>a.id.localeCompare(b.id);
- assert.deepEqual(received.sort(byId),[...expected.values()].sort(byId));
+ assert.deepEqual(received.sort(byId),[...expected.values()].map(enrichEdition).sort(byId));
 });
 test('verified articles produce clean, bounded speech segments and unreviewed items stay silent',()=>{
  for(const issue of editions)validateBriefing(issue);
@@ -46,13 +48,6 @@ test('verified articles produce clean, bounded speech segments and unreviewed it
  assert.ok(chunks.every(c=>c.text.length<=120&&!/https?:\/\/|##|\[[^\]]+\]\(/.test(c.text)));
  assert.equal(speechSegments([{status:'unreviewed',speech_script:'不該朗讀'}]).length,0);
 });
-function clientHarness(clientEditions=editions){
- const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',hidden:false,classList:{toggle(){}},setAttribute(){},showModal(){this.open=true}});return nodes.get(id)};
- const memory=new Map();let said=[];
- const handlers=new Map();const document={querySelector:node,querySelectorAll(){return []},addEventListener(type,handler){handlers.set(type,handler)}};
- const context=vm.createContext({document,console,AbortController,localStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},window:{speechSynthesis:{}},navigator:{},Intl,Date,URL,Blob,setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>({editions:clientEditions})}),SpeechSynthesisUtterance:class{constructor(text){this.text=text}},speechSynthesis:{cancel(){},speak(u){said.push(u)},getVoices(){return []}}});
- return {context,nodes,node,said,handlers};
-}
 test('client renders real summaries, filters SDKs and speaks edited text without requiring imports',async()=>{
  const h=clientHarness([editions[0]]);vm.runInContext(await readFile('web/app.js','utf8'),h.context);
  await new Promise(resolve=>setImmediate(resolve));
@@ -100,19 +95,19 @@ test('play click starts without opening or approving any story',async()=>{
 test('homepage and updater bypass stale HTML and expose the current release',async()=>{
  const page=await worker.fetch(new Request('https://station.test/'));
  assert.match(page.headers.get('Cache-Control'),/no-store/);
- assert.equal(page.headers.get('X-News-Station-Version'),'0.1.11');
+ assert.equal(page.headers.get('X-News-Station-Version'),'0.1.12');
  const version=await worker.fetch(new Request('https://station.test/api/version'));
- assert.equal((await version.json()).version,'0.1.11');
+ assert.equal((await version.json()).version,'0.1.12');
  const sw=await worker.fetch(new Request('https://station.test/sw.js'));
  assert.match(sw.headers.get('Cache-Control'),/no-store/);
  const script=await sw.text();
  const navigations=[];const handlers={};let activated;
  class Channel{constructor(){this.port1={close(){}};this.port2={postMessage:data=>this.port1.onmessage({data})}}}
- const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.11'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
+ const clients=[{url:'https://station.test/',postMessage(){},async navigate(url){navigations.push(url)}},{url:'https://station.test/?current=1',postMessage(msg,ports){ports[0].postMessage({version:'0.1.12'})},async navigate(){throw Error('Current client must retain its playback')}},{url:'https://other.test/',async navigate(){throw Error('Cross-origin client must never navigate')}}];
  const context=vm.createContext({self:{addEventListener:(type,handler)=>handlers[type]=handler,location:{origin:'https://station.test'},clients:{async claim(){},async matchAll(){return clients}}},URL,MessageChannel:Channel,setTimeout:(fn)=>setTimeout(fn,5),clearTimeout});
  vm.runInContext(script,context);
  handlers.activate({waitUntil(promise){activated=promise}});await activated;
- assert.deepEqual(navigations,['https://station.test/?app_version=0.1.11']);
+ assert.deepEqual(navigations,['https://station.test/?app_version=0.1.12']);
 });
 
 test('home opens the most recent published edition and preserves a reader’s manual switch',async()=>{
@@ -424,4 +419,101 @@ test('home refresh on an empty or archived station reports recoverable outcomes 
   assert.equal(vm.runInContext('current().id',h.context),morning.id);
   assert.ok(h.node('#list').innerHTML.includes(morning.articles[0].title));
  }
+});
+
+test('edition and saved readers show the canonical product intro and keep its official source separate from event evidence',async()=>{
+ const issue=structuredClone(editions[0]);
+ const a=issue.articles[0];
+ const original=a.speech_script;
+ const intro='示範產品負責設備管理。';
+ a.product_context={intro,source_label:'原廠產品介紹',source_url:'https://docs.example/product?x=1&y=2'};
+ a.speech_script=intro+original;
+ const h=clientHarness([issue]);
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);
+ await new Promise(resolve=>setImmediate(resolve));
+ const card=h.node('#list').innerHTML;
+ assert.ok(card.indexOf(intro)>card.indexOf(a.title));
+ assert.ok(card.indexOf(intro)<card.indexOf(a.facts[0]));
+ assert.equal(card.split(intro).length,2);
+ assert.doesNotMatch(card,/docs\.example/);
+ vm.runInContext("state.saved=[{...current().articles[0],product_context:undefined,speech_script:'更新前口播'}];go('saved');openItem(0)",h.context);
+ const detail=h.node('#detail').innerHTML;
+ assert.match(detail,/原廠產品介紹 ↗/);
+ assert.match(detail,/href="https:\/\/docs\.example\/product\?x=1&amp;y=2"/);
+ assert.ok(detail.indexOf(intro)<detail.indexOf('發生什麼'));
+ assert.equal(detail.split(intro).length,2);
+ h.handlers.get('click')({target:{closest:()=>({dataset:{speak:'0'}})}});
+ assert.equal(h.said[0].text,intro);
+ vm.runInContext("const ctx=state.published[0].articles[0].product_context;ctx.intro='<b>內容</b>';ctx.source_label='<img>';openItem(0)",h.context);
+ assert.match(h.node('#detail').innerHTML,/&lt;b&gt;內容&lt;\/b&gt;/);
+ assert.match(h.node('#detail').innerHTML,/&lt;img&gt; ↗/);
+ vm.runInContext("ctx.source_url='javascript:alert(1)';openItem(0)",h.context);
+ assert.doesNotMatch(h.node('#detail').innerHTML,/javascript:|&lt;img&gt;/);
+});
+
+test('a revised upcoming script invalidates an already prepared clip in the same issue',async()=>{
+ const issue={...editions[0],articles:editions[0].articles.slice(0,2)};
+ const h=clientHarness();
+ const ids=[];
+ const audio=h.node('#neural-audio');
+ Object.assign(audio,{play:async()=>{audio.onplaying?.()},pause(){},load(){},removeAttribute(){}});
+ h.context.fetch=async(path,options)=>{
+  if(path==='/api/editions')return Response.json({editions:[issue]});
+  if(path==='/api/audio/status')return Response.json({voice:'cedar',ready:true});
+  ids.push(JSON.parse(options.body).article_id);
+  return new Response(new Uint8Array(48),{headers:{'Content-Type':'audio/wav','X-Audio-Voice':'cedar','X-Audio-Expires-At':String(Date.now()+60000)}});
+ };
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await tick();
+ h.handlers.get('click')({target:{closest:()=>({dataset:{action:'neural-play'}})}});
+ await tick();
+ assert.deepEqual(ids,issue.articles.map(a=>a.id));
+ vm.runInContext("current().articles[1].speech_script='新增產品用途。'+current().articles[1].speech_script",h.context);
+ audio.onended();await tick();
+ assert.deepEqual(ids,[issue.articles[0].id,issue.articles[1].id,issue.articles[1].id]);
+});
+
+test('terminal media errors release just the owned session and stale callbacks cannot clear new audio',async()=>{
+ const h=clientHarness([editions[0]]);
+ const actions=new Map();
+ const session={metadata:{title:'先前狀態'},playbackState:'paused',setActionHandler(name,fn){actions.set(name,fn)}};
+ let canceledSpeech=0;
+ h.context.speechSynthesis.cancel=()=>{canceledSpeech++};
+ h.context.navigator.mediaSession=session;
+ h.context.MediaMetadata=class{constructor(data){Object.assign(this,data)}};
+ h.context.fetch=async path=>{
+  if(path==='/api/editions')return Response.json({editions:[editions[0]]});
+  if(path==='/api/audio/status')return Response.json({ready:true,voice:'cedar'});
+  return new Response(new Uint8Array(48),{headers:{'Content-Type':'audio/wav','X-Audio-Voice':'cedar','X-Audio-Expires-At':String(Date.now()+60000)}});
+ };
+ const audio=h.node('#neural-audio');
+ let released=0;
+ Object.assign(audio,{async play(){this.paused=false;this.onplaying?.()},pause(){this.paused=true},load(){released++},removeAttribute(name){delete this[name]}});
+ const click=dataset=>h.handlers.get('click')({target:{closest:()=>({dataset})}});
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ vm.runInContext(await readFile('web/app.js','utf8'),h.context);await tick();
+ click({action:'stop'});
+ assert.deepEqual(session.metadata,{title:'先前狀態'});
+ assert.equal(actions.size,0);assert.equal(canceledSpeech,0);
+ click({neural:'0'});await tick();
+ assert.equal(session.playbackState,'playing');
+ const oldError=audio.onerror;
+ const oldTimeUpdate=audio.ontimeupdate;
+ oldError();
+ assert.equal(released,1);assert.equal(audio.src,undefined);
+ assert.equal(audio.ontimeupdate,null);assert.equal(audio.onplaying,null);
+ assert.equal(session.metadata,null);assert.equal(session.playbackState,'none');
+ assert.deepEqual([...actions.values()],[null,null,null,null]);
+ assert.match(h.node('#neural-state').textContent,/無法播放/);
+ click({neural:'1'});await tick();
+ const url=audio.src;oldTimeUpdate();oldError();
+ assert.equal(audio.src,url);assert.equal(session.playbackState,'playing');
+ actions.get('stop')();
+ assert.equal(session.playbackState,'none');assert.equal(audio.src,undefined);
+ session.metadata={title:'其他播放器'};
+ audio.play=async()=>{throw Object.assign(Error('invalid source'),{name:'NotSupportedError'})};
+ click({neural:'1'});await tick();
+ assert.equal(audio.src,undefined);
+ assert.deepEqual(session.metadata,{title:'其他播放器'},'a session that never played did not own the controls');
+ assert.equal(canceledSpeech,0);
 });

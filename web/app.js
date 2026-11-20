@@ -1,4 +1,4 @@
-const APP_RELEASE='0.1.11';
+const APP_RELEASE='0.1.12';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeLink = s => {try {const u=new URL(s);return u.protocol==='https:'?u.href:null}catch{return null}};
@@ -14,9 +14,19 @@ function sourceDate(r){if(r.source_published_precision==='date'){return new Date
 function available(){return [...state.published,...state.editions.filter(e=>!state.published.some(p=>p.id===e.id))].filter(e=>e.edition===state.edition&&Date.parse(e.published_at)<=Date.now()).sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at))}
 function current(){const editions=available();return editions.find(e=>e.id===state.selected)||editions[0]}
 const isEdited = r=>r.status==='edited'&&Array.isArray(r.facts)&&r.speech_script;
-function items(){let rows=state.view==='saved'?state.saved:state.view==='inbox'?state.items.filter(r=>state.showTechnical||r.lane==='review'):current()?.articles||[];return rows.filter(r=>(state.topic==='全部'||r.topic===state.topic)&&(!state.query||[r.title,r.excerpt,r.source,...(r.facts||[])].join(' ').toLowerCase().includes(state.query.toLowerCase())))}
+function savedArticles(){
+ if(!state.saved.length)return [];
+ const articles=new Map();
+ for(const issue of [...state.published].sort((a,b)=>Date.parse(a.published_at)-Date.parse(b.published_at))){
+  for(const article of issue.articles)articles.set(article.id,article);
+ }
+ return state.saved.map(saved=>articles.get(saved.id)||saved);
+}
+function items(){let rows=state.view==='saved'?savedArticles():state.view==='inbox'?state.items.filter(r=>state.showTechnical||r.lane==='review'):current()?.articles||[];return rows.filter(r=>(state.topic==='全部'||r.topic===state.topic)&&(!state.query||[r.title,r.excerpt,r.product_context?.intro,r.source,...(r.facts||[])].join(' ').toLowerCase().includes(state.query.toLowerCase())))}
 function go(v){state.view=v;state.topic='全部';state.query='';render();if((v==='inbox'||v==='sources')&&!state.sources.length&&!state.loading)loadSources()}
 function publishedEditionFor(article,preferredId){
+ const canonical=state.published.find(edition=>edition.articles.includes(article));
+ if(canonical)return canonical;
  const contains=edition=>edition.articles.some(entry=>entry.id===article.id);
  const preferred=state.published.find(edition=>edition.id===preferredId);
  return preferred&&contains(preferred)?preferred:state.published.find(contains);
@@ -74,12 +84,19 @@ function render(){
  $('#body').innerHTML=top+'<div class="toolbar"><div class="tabs">'+['全部','AI','IT','資安','環境','綜合'].map(t=>'<button data-topic="'+t+'" class="'+(state.topic===t?'active':'')+'">'+t+'</button>').join('')+'</div></div><input class="search" type="search" placeholder="搜尋標題、重點、來源…" aria-label="搜尋新聞" value="'+esc(state.query)+'"><div class="list-head"><span>'+(state.view==='inbox'?'EDITORIAL WORKSPACE':state.view==='saved'?'YOUR READING LIST':'HUMAN-READABLE BRIEFING')+'</span><span id="total"></span></div><div id="list"></div><div class="footer-note">事實附來源 · 判讀獨立標記 · 不為篇數湊稿</div>';
  drawList();updatePlayer();
 }
+function productIntro(article,includeSource=false){
+ const context=article.product_context;
+ if(typeof context?.intro!=='string'||!context.intro.trim())return '';
+ const url=includeSource&&safeLink(context.source_url);
+ const link=url?'<small><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(context.source_label||'官方產品說明')+' ↗</a></small>':'';
+ return '<p class="product-intro">'+esc(context.intro)+(link?' '+link:'')+'</p>';
+}
 function drawList(){
  let rows=items();$('#total').textContent=rows.length+' 則'+(state.view==='inbox'?'素材':'重點');
  if((state.loading&&state.view==='inbox')||(state.publicationLoading&&state.view==='edition'&&!current())){$('#list').innerHTML='<div class="loading" role="status">正在讀取內容…</div>';return}
  if(state.error&&state.view==='inbox'){$('#list').innerHTML='<div class="notice">'+esc(state.error)+'</div>';return}
  if(!rows.length){$('#list').innerHTML='<div class="empty"><div class="empty-icon">▤</div><h2>'+(state.query||state.topic!=='全部'?'沒有符合條件的重點':state.view==='saved'?'把值得讀的事，留在這裡':state.view==='inbox'?'目前沒有可用素材':'這一期尚未發布')+'</h2><p>'+(state.query||state.topic!=='全部'?'試試其他關鍵字或分類。':state.view==='saved'?'點選新聞旁的收藏符號，稍後繼續閱讀。':state.view==='inbox'?'可重新擷取或檢查來源狀態。':'正式重點需經過選稿、繁中編輯與來源核對；來源素材不會自動當成新聞。')+'</p>'+(state.view==='edition'?'<button class="primary" data-edition="'+(state.edition==='morning'?'evening':'morning')+'">查看另一版</button>':'')+'</div>';return}
- $('#list').innerHTML=rows.map((r,i)=>{const edited=isEdited(r);const technical=r.lane==='technical';const title=technical?r.source+' 技術參考：'+r.title:r.title;return '<article class="article '+(state.read.includes(r.id)?'read':'')+'"><div class="meta"><span class="badge">'+esc(r.topic)+'</span><span class="badge '+(edited?'':'pending')+'">'+(edited?(r.verification_status==='corroborated'?'多來源核對':r.verification_status==='attributed_report'?'單一來源報導':'已核對官方聲明'):technical?'技術參考':r.lane==='excluded'?'已排除':'待選稿')+'</span><span>'+esc(sourceDate(r))+'</span></div><h2><button class="headline" data-open="'+i+'">'+esc(title)+'</button></h2><button class="bookmark '+(state.saved.some(s=>s.id===r.id)?'saved':'')+'" aria-label="'+(state.saved.some(s=>s.id===r.id)?'取消收藏':'收藏')+'" data-save="'+i+'">'+(state.saved.some(s=>s.id===r.id)?'▣':'♧')+'</button>'+(edited?'<p class="excerpt" style="display:block">'+esc(r.excerpt)+'</p><ul class="brief-facts">'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul><div class="why"><b>為何重要 · AI 判讀</b>'+esc(r.analysis)+'</div><p class="uncertainty">'+esc(r.uncertainty)+'</p>':'<p class="sub">'+esc(r.reason||'原始來源素材，尚未整理成新聞摘要。')+'</p>')+'<div class="bottom"><span>'+esc(r.source)+'</span><div>'+(edited?articleVoiceButtons(r,i):'')+'<button data-open="'+i+'">'+(state.read.includes(r.id)?'已讀 · ':'')+(edited?'查閱來源':'檢視素材')+' ↗</button></div></div></article>'}).join('');
+ $('#list').innerHTML=rows.map((r,i)=>{const edited=isEdited(r);const technical=r.lane==='technical';const title=technical?r.source+' 技術參考：'+r.title:r.title;return '<article class="article '+(state.read.includes(r.id)?'read':'')+'"><div class="meta"><span class="badge">'+esc(r.topic)+'</span><span class="badge '+(edited?'':'pending')+'">'+(edited?(r.verification_status==='corroborated'?'多來源核對':r.verification_status==='attributed_report'?'單一來源報導':'已核對官方聲明'):technical?'技術參考':r.lane==='excluded'?'已排除':'待選稿')+'</span><span>'+esc(sourceDate(r))+'</span></div><h2><button class="headline" data-open="'+i+'">'+esc(title)+'</button></h2><button class="bookmark '+(state.saved.some(s=>s.id===r.id)?'saved':'')+'" aria-label="'+(state.saved.some(s=>s.id===r.id)?'取消收藏':'收藏')+'" data-save="'+i+'">'+(state.saved.some(s=>s.id===r.id)?'▣':'♧')+'</button>'+(edited?productIntro(r)+'<p class="excerpt" style="display:block">'+esc(r.excerpt)+'</p><ul class="brief-facts">'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul><div class="why"><b>為何重要 · AI 判讀</b>'+esc(r.analysis)+'</div><p class="uncertainty">'+esc(r.uncertainty)+'</p>':'<p class="sub">'+esc(r.reason||'原始來源素材，尚未整理成新聞摘要。')+'</p>')+'<div class="bottom"><span>'+esc(r.source)+'</span><div>'+(edited?articleVoiceButtons(r,i):'')+'<button data-open="'+i+'">'+(state.read.includes(r.id)?'已讀 · ':'')+(edited?'查閱來源':'檢視素材')+' ↗</button></div></div></article>'}).join('');
 }
 function sourceRefreshButton(){
  const status = state.collectedAt ? '最近擷取 '+esc(date(state.collectedAt,true))+'（台北）' : '';
@@ -173,10 +190,10 @@ async function loadOlderEditions(){
  finally{state.archiveLoading=false;render()}
 }
 function openItem(i){const r=items()[i];if(!r)return;const edited=isEdited(r);const next=[...new Set([...state.read,r.id])];if(write('read',next))state.read=next;
- $('#detail').innerHTML='<button class="close" data-action="close" aria-label="關閉">×</button><span class="badge">'+esc(r.topic)+'</span><h2>'+esc(r.title)+'</h2><div class="meta">'+esc(r.source)+' · '+esc(sourceDate(r))+'</div>'+(edited?'<p>'+esc(r.excerpt)+'</p><h3>發生什麼</h3><ol>'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ol><div class="why"><b>為何重要 · AI 判讀</b>'+esc(r.analysis)+'</div><h3>仍須留意</h3><p>'+esc(r.uncertainty)+'</p>'+articleVoiceButtons(r,i,true)+'<h3>逐項來源核對</h3>'+r.evidence.map((e,j)=>'<div class="evidence-row"><strong>事實 '+(e.fact?r.facts.indexOf(e.fact)+1:j+1)+'</strong> · '+esc(e.support)+'<br><a href="'+esc(safeLink(e.url)||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(new URL(e.url).hostname)+' ↗</a></div>').join('')+'<p class="label">'+(r.verification_status==='official_statement'?'核對官方公告的內容，沒有把廠商或政府宣稱當成獨立證實。':r.verification_status==='attributed_report'?'已查閱具名媒體原文，事實仍以該報導歸屬為準。':'已比對多個來源；仍須留意來源是否相互獨立。')+'<br>核對時間：'+date(r.verified_at,true)+'（台北）</p><details><summary>為何入選／更正紀錄</summary><p>'+esc(r.selection_reason)+'</p><p>'+(r.correction_history?.length?esc(JSON.stringify(r.correction_history)):'尚無更正紀錄。')+'</p></details>':'<p class="notice">'+esc(r.reason||'這是尚未編輯的原始素材，不是正式新聞。')+'</p><p>請先查閱原始來源。此素材尚未有繁中摘要與口播稿。</p><details><summary>展開原始摘錄（未編輯）</summary><div class="raw">'+esc(r.excerpt||'來源未提供摘錄。')+'</div></details>')+'<h3>原始來源</h3>'+[...new Set(r.source_urls||r.evidence_candidates?.map(e=>e.url)||[r.url])].filter(safeLink).map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(new URL(u).hostname)+' ↗</a><br>').join('');
+ $('#detail').innerHTML='<button class="close" data-action="close" aria-label="關閉">×</button><span class="badge">'+esc(r.topic)+'</span><h2>'+esc(r.title)+'</h2><div class="meta">'+esc(r.source)+' · '+esc(sourceDate(r))+'</div>'+(edited?productIntro(r,true)+'<p>'+esc(r.excerpt)+'</p><h3>發生什麼</h3><ol>'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ol><div class="why"><b>為何重要 · AI 判讀</b>'+esc(r.analysis)+'</div><h3>仍須留意</h3><p>'+esc(r.uncertainty)+'</p>'+articleVoiceButtons(r,i,true)+'<h3>逐項來源核對</h3>'+r.evidence.map((e,j)=>'<div class="evidence-row"><strong>事實 '+(e.fact?r.facts.indexOf(e.fact)+1:j+1)+'</strong> · '+esc(e.support)+'<br><a href="'+esc(safeLink(e.url)||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(new URL(e.url).hostname)+' ↗</a></div>').join('')+'<p class="label">'+(r.verification_status==='official_statement'?'核對官方公告的內容，沒有把廠商或政府宣稱當成獨立證實。':r.verification_status==='attributed_report'?'已查閱具名媒體原文，事實仍以該報導歸屬為準。':'已比對多個來源；仍須留意來源是否相互獨立。')+'<br>核對時間：'+date(r.verified_at,true)+'（台北）</p><details><summary>為何入選／更正紀錄</summary><p>'+esc(r.selection_reason)+'</p><p>'+(r.correction_history?.length?esc(JSON.stringify(r.correction_history)):'尚無更正紀錄。')+'</p></details>':'<p class="notice">'+esc(r.reason||'這是尚未編輯的原始素材，不是正式新聞。')+'</p><p>請先查閱原始來源。此素材尚未有繁中摘要與口播稿。</p><details><summary>展開原始摘錄（未編輯）</summary><div class="raw">'+esc(r.excerpt||'來源未提供摘錄。')+'</div></details>')+'<h3>原始來源</h3>'+[...new Set(r.source_urls||r.evidence_candidates?.map(e=>e.url)||[r.url])].filter(safeLink).map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(new URL(u).hostname)+' ↗</a><br>').join('');
  $('#detail').showModal();drawList();
 }
-const cloud={loading:true,ready:false,voice:'',error:'',active:false,pending:false,paused:false,mode:'single',next:null,articles:[],skipped:[],editionId:'',index:0,token:0,objectUrl:null,expires:0,cleanupTimer:null,controller:null};
+const cloud={loading:true,ready:false,voice:'',error:'',active:false,pending:false,paused:false,mode:'single',next:null,articles:[],skipped:[],editionId:'',index:0,token:0,objectUrl:null,expires:0,cleanupTimer:null,controller:null,mediaSession:null,mediaActions:[]};
 async function loadNeuralStatus(){
  try{
   const response=await fetch('/api/audio/status',{cache:'no-store'});
@@ -191,18 +208,61 @@ async function loadNeuralStatus(){
 function detachNeuralTrack(){
  const node=$('#neural-audio');
  node.onended=node.onerror=node.ontimeupdate=node.onloadedmetadata=node.onpause=node.onplaying=null;
- if(node.pause)node.pause();
- if(cloud.objectUrl){node.removeAttribute('src');node.load();URL.revokeObjectURL(cloud.objectUrl);cloud.objectUrl=null}
- clearTimeout(cloud.cleanupTimer);
+ clearTimeout(cloud.cleanupTimer);cloud.cleanupTimer=null;
+ if(!cloud.objectUrl)return;
+ const url=cloud.objectUrl;cloud.objectUrl=null;cloud.expires=0;
+ node.pause();node.removeAttribute('src');node.load();URL.revokeObjectURL(url);
 }
-function stopNeuralPlayback(){
- cloud.token++;cloud.active=false;cloud.pending=false;cloud.paused=false;cloud.next=null;cloud.controller?.abort();cloud.controller=null;
- detachNeuralTrack();$('#neural-player').hidden=true;updatePlayer();
+function releaseNeuralMediaSession(){
+ const session=cloud.mediaSession;
+ if(!session)return;
+ cloud.mediaSession=null;
+ for(const action of cloud.mediaActions){
+  try{session.setActionHandler(action,null)}catch{}
+ }
+ cloud.mediaActions=[];
+ try{session.playbackState='none'}catch{}
+ try{session.metadata=null}catch{}
+ try{session.setPositionState?.()}catch{}
+}
+function stopNeuralPlayback(message=''){
+ cloud.token++;cloud.active=false;cloud.pending=false;cloud.paused=false;cloud.next=null;
+ cloud.controller?.abort();cloud.controller=null;
+ detachNeuralTrack();releaseNeuralMediaSession();
+ cloud.articles=[];cloud.skipped=[];cloud.editionId='';cloud.index=0;
+ $('#neural-audio').hidden=true;$('#neural-player').hidden=!message;
+ if(message)$('#neural-state').textContent=message;
+ updatePlayer();
+}
+function setNeuralMediaSession(token,node,title){
+ const session=navigator.mediaSession;
+ if(!session)return;
+ if(!cloud.mediaSession){
+  cloud.mediaSession=session;
+  const handlers={
+   play:()=>setNeuralPaused(false),
+   pause:()=>setNeuralPaused(true),
+   stop:()=>stopNeuralPlayback(),
+   seekto:event=>{if(cloud.objectUrl&&Number.isFinite(event.seekTime))node.currentTime=event.seekTime},
+  };
+  for(const [action,handler] of Object.entries(handlers)){
+   try{
+    session.setActionHandler(action,event=>{if(token===cloud.token&&cloud.active)handler(event)});
+    cloud.mediaActions.push(action);
+   }catch{}
+  }
+ }
+ try{
+  if(typeof MediaMetadata!=='undefined')session.metadata=new MediaMetadata({title,artist:'News Station · '+cloud.voice+' 合成語音'});
+ }catch{}
+ try{session.playbackState='playing'}catch{}
 }
 async function startNeuralPlayback(articles,editionId,mode='single'){
  if(!cloud.ready)return toast('公司 AI 語音尚未接通，需要先設定後端 API 金鑰');
  if(cloud.pending)return toast('音訊正在準備中，請稍候');
- stopSpeech();stopNeuralPlayback();cloud.active=true;cloud.controller=new AbortController();cloud.mode=mode;cloud.articles=articles.filter(isEdited);cloud.skipped=[];cloud.editionId=editionId;cloud.index=0;if(!cloud.articles.length){cloud.active=false;return toast('沒有可播放的口播稿')}
+ const queue=articles.filter(isEdited);
+ if(!queue.length)return toast('沒有可播放的口播稿');
+ stopSpeech();stopNeuralPlayback();cloud.active=true;cloud.controller=new AbortController();cloud.mode=mode;cloud.articles=queue;cloud.editionId=editionId;
  await playNeuralTrack(cloud.token);
 }
 // Blobs live only in this tab. Map order tracks the most recently played clips.
@@ -255,35 +315,44 @@ function prepareFollowingTrack(token){
  const index=cloud.index+1;
  if(token!==cloud.token||!cloud.active||cloud.paused||cloud.mode!=='edition'||index>=cloud.articles.length||cloud.next)return;
  // Resolve failures into the slot so a failed preload is handled only at its turn.
- const result=(async()=>{
+ try{
   const track=narrationTrack(index);
-  return loadTrackClip(track,cloud.controller.signal);
- })().catch(error=>({error}));
- cloud.next={index,result};
+  const result=loadTrackClip(track,cloud.controller.signal).catch(error=>({error}));
+  cloud.next={key:track.key,result};
+ }catch{cloud.next=null}
 }
-function toggleNeuralPause(){
+function setNeuralPaused(paused){
  const node=$('#neural-audio');
  if(cloud.pending||!cloud.objectUrl){
-  cloud.paused=!cloud.paused;
-  $('#neural-state').textContent=cloud.paused?'已暫停，按暫停／繼續可續播。':'正在準備音訊…';
-  if(!cloud.paused&&!cloud.pending)playNeuralTrack(cloud.token);
+  if(cloud.paused===paused)return;
+  cloud.paused=paused;
+  $('#neural-state').textContent=paused?'已暫停，按暫停／繼續可續播。':'正在準備音訊…';
+  if(cloud.mediaSession){try{cloud.mediaSession.playbackState=paused?'paused':'playing'}catch{}}
+  if(!paused&&!cloud.pending)playNeuralTrack(cloud.token);
+ }else if(paused){
+  if(!node.paused)node.pause();
  }else if(node.paused){
-  node.play().catch(()=>toast('請按播放器的播放鍵'));
- }else node.pause();
+  const url=cloud.objectUrl;
+  node.play().catch(()=>{if(cloud.active&&cloud.objectUrl===url)toast('請按播放器的播放鍵')});
+ }
  updatePlayer();
+}
+function toggleNeuralPause(){
+ const paused=cloud.pending||!cloud.objectUrl?cloud.paused:$('#neural-audio').paused;
+ setNeuralPaused(!paused);
 }
 async function playNeuralTrack(token){
  if(token!==cloud.token||!cloud.active)return;
- const article=cloud.articles[cloud.index];
+ const index=cloud.index;
+ const article=cloud.articles[index];
  if(!article){
-  cloud.active=false;
   const skipped=cloud.skipped;
-  $('#neural-state').textContent=skipped.length?'已播完 '+(cloud.articles.length-skipped.length)+' 則。'+skipped.length+' 則因口播與稿件不符略過：'+skipped.join('、'):'播報完畢';
-  updatePlayer();return;
+  const message=skipped.length?'已播完 '+(cloud.articles.length-skipped.length)+' 則。'+skipped.length+' 則因口播與稿件不符略過：'+skipped.join('、'):'播報完畢';
+  stopNeuralPlayback(message);return;
  }
 
  if(cloud.objectUrl)detachNeuralTrack();
- const node=$('#neural-audio');$('#neural-player').hidden=false;
+ const node=$('#neural-audio');node.hidden=false;$('#neural-player').hidden=false;
  $('#neural-title').textContent=cloud.voice+' · '+article.title;
  if(cloud.paused){$('#neural-state').textContent='已暫停，按暫停／繼續可續播。';updatePlayer();return}
  $('#neural-state').textContent=cloud.index?'正在銜接第 '+(cloud.index+1)+' 則…':'正在準備音訊…';
@@ -293,42 +362,60 @@ async function playNeuralTrack(token){
   const track=narrationTrack(cloud.index);
   const next=cloud.next;
   cloud.next=null;
-  let result=next?.index===cloud.index?await next.result:await loadTrackClip(track,cloud.controller.signal);
+  let result=next?.key===track.key?await next.result:await loadTrackClip(track,cloud.controller.signal);
   if(token!==cloud.token)return;
   if(result.error)throw result.error;
   if(result.clip.expires<=Date.now()){
    result=await loadTrackClip(track,cloud.controller.signal);
    if(token!==cloud.token)return;
   }
+  if(track.key!==narrationTrack(cloud.index).key)throw Error('口播稿已更新，請重新按播放。');
   const {clip,cached}=result;
   const {blob,expires}=clip;
-  cloud.objectUrl=URL.createObjectURL(blob);cloud.expires=expires;node.src=cloud.objectUrl;node.playbackRate=player.speed;
-  const progressKey='neural-position:'+cloud.voice+':'+track.format.join('/')+':'+article.id+':'+article.verified_at;
-  node.onloadedmetadata=()=>{const saved=Number(read(progressKey,0));if(Number.isFinite(saved)&&saved>0&&saved<node.duration)node.currentTime=saved};
-  node.ontimeupdate=()=>{if(Date.now()>=cloud.expires){stopNeuralPlayback();return toast('音訊已到期')}write(progressKey,node.currentTime)};
-  node.onended=()=>{if(token!==cloud.token||!cloud.active)return;node.onended=null;write(progressKey,0);cloud.index++;playNeuralTrack(token)};
+  const url=URL.createObjectURL(blob);
+  cloud.objectUrl=url;cloud.expires=expires;node.src=url;node.playbackRate=player.speed;
+  const isCurrent=()=>cloud.active&&token===cloud.token&&cloud.objectUrl===url;
+  const progressKey='neural-position:'+cloud.voice+':'+track.format.join('/')+':'+article.id;
+  if(read(progressKey+':revision',null)!==track.key){
+   write(progressKey,0);write(progressKey+':revision',track.key);
+  }
+  node.onloadedmetadata=()=>{if(!isCurrent())return;const saved=Number(read(progressKey,0));if(Number.isFinite(saved)&&saved>0&&saved<node.duration)node.currentTime=saved};
+  node.ontimeupdate=()=>{if(!isCurrent())return;if(Date.now()>=cloud.expires){stopNeuralPlayback();return toast('音訊已到期')}write(progressKey,node.currentTime)};
+  node.onended=()=>{if(!isCurrent())return;node.onended=null;write(progressKey,0);cloud.index++;playNeuralTrack(token)};
   const trackLabel=cloud.voice+' AI 合成語音 · '+(cloud.index+1)+' / '+cloud.articles.length+' 則'+(cached?' · 分頁暫存重播':'');
   $('#neural-state').textContent=trackLabel;
   node.onplaying=()=>{
-   if(token!==cloud.token||!cloud.active)return;
-   cloud.paused=false;$('#neural-state').textContent=trackLabel;updatePlayer();prepareFollowingTrack(token);
+   if(!isCurrent())return;
+   cloud.paused=false;setNeuralMediaSession(token,node,article.title);
+   $('#neural-state').textContent=trackLabel;updatePlayer();prepareFollowingTrack(token);
   };
-  node.onpause=()=>{if(!node.ended&&token===cloud.token&&cloud.active){cloud.paused=true;$('#neural-state').textContent=trackLabel+' · 已暫停';updatePlayer()}};
-  node.onerror=()=>{recentAudio.delete(track.key);cloud.controller?.abort();cloud.next=null;cloud.active=false;$('#neural-state').textContent='音訊無法播放，請重試或閱讀文字';updatePlayer()};
-  cloud.cleanupTimer=setTimeout(()=>{if(token===cloud.token)stopNeuralPlayback()},Math.min(expires-Date.now(),72*60*60*1000));
-  if('mediaSession' in navigator&&typeof MediaMetadata!=='undefined'){navigator.mediaSession.metadata=new MediaMetadata({title:article.title,artist:'News Station · '+cloud.voice+' 合成語音'});try{navigator.mediaSession.setActionHandler('play',()=>node.play());navigator.mediaSession.setActionHandler('pause',()=>node.pause());navigator.mediaSession.setActionHandler('seekto',event=>{if(Number.isFinite(event.seekTime))node.currentTime=event.seekTime})}catch{}}
+  node.onpause=()=>{
+   if(!isCurrent()||node.ended)return;
+   cloud.paused=true;
+   if(cloud.mediaSession){try{cloud.mediaSession.playbackState='paused'}catch{}}
+   $('#neural-state').textContent=trackLabel+' · 已暫停';updatePlayer();
+  };
+  node.onerror=()=>{
+   if(!isCurrent())return;
+   recentAudio.delete(track.key);stopNeuralPlayback('音訊無法播放，請重試或閱讀文字');
+  };
+  cloud.cleanupTimer=setTimeout(()=>{if(isCurrent())stopNeuralPlayback('音訊已到期')},Math.min(expires-Date.now(),72*60*60*1000));
   cloud.pending=false;
   if(cloud.paused){$('#neural-state').textContent='音訊已就緒，按播放可續播。'}
-  else try{await node.play()}catch{if(token===cloud.token)$('#neural-state').textContent='音訊已準備好，請按播放器的播放鍵'}
+  else try{await node.play()}catch(error){
+   if(!isCurrent())return;
+   if(error.name==='NotAllowedError')$('#neural-state').textContent='音訊已準備好，請按播放器的播放鍵';
+   else if(error.name!=='AbortError'||!node.paused)stopNeuralPlayback('音訊無法播放，請重試或閱讀文字');
+  }
  }catch(error){
   if(token!==cloud.token)return;
   if(error.code==='narration_mismatch'&&cloud.mode==='edition'){
    cloud.skipped.push(article.title);cloud.index++;advance=true;
    toast('口播與稿件不符，略過〈'+article.title+'〉');
   }else{
-   cloud.active=false;cloud.controller?.abort();cloud.next=null;$('#neural-state').textContent=error.message;toast(error.message);
+   stopNeuralPlayback(error.message);toast(error.message);
   }
- }finally{if(token===cloud.token){cloud.pending=false;updatePlayer()}}
+ }finally{if(token===cloud.token&&(advance||cloud.index===index)){cloud.pending=false;updatePlayer()}}
  if(advance)await playNeuralTrack(token);
 }
 const player={queue:[],index:0,key:'',active:false,paused:false,speed:Number(read('speed',1))||1,generation:0,utterance:null};
@@ -342,16 +429,20 @@ function updatePlayer(){
  }
  document.querySelectorAll('[data-player-status]').forEach(el=>{el.textContent=status;el.setAttribute('role','status')});
 }
-function stopSpeech(){player.generation++;if('speechSynthesis'in window)speechSynthesis.cancel();player.active=false;player.paused=false;updatePlayer()}
+function stopSpeech(){player.generation++;if(player.active&&'speechSynthesis'in window)speechSynthesis.cancel();player.active=false;player.paused=false;updatePlayer()}
 function beginSpeech(articles,key){if(cloud.active||cloud.pending)stopNeuralPlayback();if(!('speechSynthesis'in window))return toast('此瀏覽器未提供語音，請閱讀文字重點');const queue=[];for(const a of articles){if(!isEdited(a))continue;const text=plain(a.speech_script);for(const sentence of text.match(/[^。！？]+[。！？]?/g)||[]){for(let n=0;n<sentence.length;n+=120)queue.push(sentence.slice(n,n+120))}}if(!queue.length)return toast('本期尚無編輯完成的口播稿');stopSpeech();const signature=queue.join('').length+'-'+queue.join('').slice(-16);player.queue=queue;player.key=key+':'+signature;player.index=Math.min(Number(read('speech:'+player.key,0))||0,queue.length-1);player.active=true;player.paused=false;speakNext();toast('開始朗讀繁中重點')}
 function speakNext(){if(!player.active)return;const generation=player.generation;const utterance=new SpeechSynthesisUtterance(player.queue[player.index]);player.utterance=utterance;utterance.lang='zh-TW';utterance.rate=player.speed;const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase()==='zh-tw');if(voice)utterance.voice=voice;utterance.onend=()=>{if(generation!==player.generation)return;player.index++;if(player.index>=player.queue.length){write('speech:'+player.key,0);player.active=false;toast('本次重點朗讀完畢');updatePlayer();return}write('speech:'+player.key,player.index);speakNext()};utterance.onerror=e=>{if(generation!==player.generation||e.error==='canceled'||e.error==='interrupted')return;player.active=false;toast('語音播放失敗，請按播放重試或閱讀文字');updatePlayer()};speechSynthesis.speak(utterance);updatePlayer()}
 function download(name,data){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function validateImported(e){if(!e||!e.id||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||!['morning','evening'].includes(e.edition)||!Array.isArray(e.articles)||!e.articles.length||e.articles.length>(e.edition==='morning'?20:10)||!Number.isFinite(Date.parse(e.published_at))||!Number.isFinite(Date.parse(e.cutoff_at))||Date.parse(e.cutoff_at)>Date.parse(e.published_at)||Date.parse(e.published_at)>Date.now())throw Error('期刊格式或時間無效');const ids=new Set();for(const a of e.articles){if(!isEdited(a)||!a.event_id||ids.has(a.event_id)||!safeLink(a.url)||!a.source||!['AI','IT','資安','環境','綜合'].includes(a.topic)||!/[\u3400-\u9fff]/.test(a.title)||/^v?\d+\.\d+/.test(a.title)||!a.excerpt||!a.analysis||!a.uncertainty||!Array.isArray(a.evidence)||a.facts.length<3||a.facts.length>5||a.evidence.length<a.facts.length||!a.evidence.every(f=>safeLink(f.url)&&f.support&&a.source_urls?.includes(f.url))||!a.source_urls.every(safeLink)||!['official_statement','corroborated','attributed_report'].includes(a.verification_status)||plain(a.speech_script)!==a.speech_script.trim())throw Error('新聞須有繁中摘要、三至五項事實與引用、判讀、限制與乾淨口播稿');ids.add(a.event_id)}}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.view)return go(b.dataset.view);if(b.dataset.edition){stopSpeech();stopNeuralPlayback();state.editionPicked=true;state.edition=b.dataset.edition;state.selected='';render();return}if(b.dataset.topic){state.topic=b.dataset.topic;render();return}if(b.dataset.open!==undefined)return openItem(Number(b.dataset.open));if(b.dataset.neural!==undefined){const r=items()[Number(b.dataset.neural)];if($('#detail').open)$('#detail').close();return startNeuralPlayback([r],current()?.id)}if(b.dataset.speak!==undefined){const r=items()[Number(b.dataset.speak)];return beginSpeech([r],r.id)}if(b.dataset.save!==undefined){const r=items()[Number(b.dataset.save)];const saved=state.saved.some(s=>s.id===r.id)?state.saved.filter(s=>s.id!==r.id):[r,...state.saved];if(write('saved',saved)){state.saved=saved;drawList();toast('收藏已更新')}return}switch(b.dataset.action){case'neural-play':{const edition=current();if(!edition)return toast('這一期尚未發布');startNeuralPlayback(edition.articles,edition.id,'edition');break}case'neural-stop':stopNeuralPlayback();break;case'reload-app':{const url=new URL(window.location.href);url.searchParams.set('app_version',APP_RELEASE);window.location.replace(url.href);break}case'refresh':loadSources();break;case'refresh-edition':refreshEdition();break;case'retry-editions':loadEditions();break;case'older-editions':loadOlderEditions();break;case'close':$('#detail').close();break;case'export':download('news-station-backup.json',{version:2,saved:state.saved,read:state.read,editions:state.editions});break;case'template':if(current())download('edition-reference.json',current());else toast('目前沒有可下載的編輯版');break;case'speak':{const edition=current();if(!edition)return toast(state.publicationLoading?'新聞還在載入，完成後即可播放':state.publicationError?'新聞載入失敗，請按重新載入':(state.edition==='evening'?'晚報尚未發布，可切換晨報直接播放':'晨報尚未發布，可查看另一版'));beginSpeech(edition.articles,edition.id);break}case'pause':if(cloud.active){toggleNeuralPause();break}if(player.active){player.paused=!player.paused;if(player.paused)speechSynthesis.pause();else speechSynthesis.resume();updatePlayer()}break;case'stop':stopSpeech();stopNeuralPlayback();break}});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.view)return go(b.dataset.view);if(b.dataset.edition){stopSpeech();stopNeuralPlayback();state.editionPicked=true;state.edition=b.dataset.edition;state.selected='';render();return}if(b.dataset.topic){state.topic=b.dataset.topic;render();return}if(b.dataset.open!==undefined)return openItem(Number(b.dataset.open));if(b.dataset.neural!==undefined){const r=items()[Number(b.dataset.neural)];if($('#detail').open)$('#detail').close();return startNeuralPlayback([r],current()?.id)}if(b.dataset.speak!==undefined){const r=items()[Number(b.dataset.speak)];return beginSpeech([r],r.id)}if(b.dataset.save!==undefined){const r=items()[Number(b.dataset.save)];const saved=state.saved.some(s=>s.id===r.id)?state.saved.filter(s=>s.id!==r.id):[r,...state.saved];if(write('saved',saved)){state.saved=saved;drawList();toast('收藏已更新')}return}switch(b.dataset.action){case'neural-play':{const edition=current();if(!edition)return toast('這一期尚未發布');startNeuralPlayback(edition.articles,edition.id,'edition');break}case'neural-stop':stopNeuralPlayback();break;case'reload-app':{const url=new URL(window.location.href);url.searchParams.set('app_version',APP_RELEASE);window.location.replace(url.href);break}case'refresh':loadSources();break;case'refresh-edition':refreshEdition();break;case'retry-editions':loadEditions();break;case'older-editions':loadOlderEditions();break;case'close':$('#detail').close();break;case'export':download('news-station-backup.json',{version:2,saved:savedArticles(),read:state.read,editions:state.editions});break;case'template':if(current())download('edition-reference.json',current());else toast('目前沒有可下載的編輯版');break;case'speak':{const edition=current();if(!edition)return toast(state.publicationLoading?'新聞還在載入，完成後即可播放':state.publicationError?'新聞載入失敗，請按重新載入':(state.edition==='evening'?'晚報尚未發布，可切換晨報直接播放':'晨報尚未發布，可查看另一版'));beginSpeech(edition.articles,edition.id);break}case'pause':if(cloud.active){toggleNeuralPause();break}if(player.active){player.paused=!player.paused;if(player.paused)speechSynthesis.pause();else speechSynthesis.resume();updatePlayer()}break;case'stop':stopSpeech();stopNeuralPlayback();break}});
 document.addEventListener('input',e=>{if(e.target.matches('.search')){state.query=e.target.value;drawList()}});
 document.addEventListener('change',async e=>{if(e.target.matches('[data-speed]')){player.speed=Number(e.target.value);write('speed',player.speed);if(cloud.active)$('#neural-audio').playbackRate=player.speed;if(player.active){const queue=player.queue,index=player.index,key=player.key;stopSpeech();Object.assign(player,{queue,index,key,active:true});speakNext()}return}if(e.target.id==='technical'){state.showTechnical=e.target.checked;drawList();return}if(e.target.id==='edition-archive'){stopSpeech();stopNeuralPlayback();state.editionPicked=true;state.selected=e.target.value;render();return}if(!['import','restore'].includes(e.target.id))return;try{const f=e.target.files[0];if(!f)return;if(f.size>2000000)throw Error('檔案不可超過 2 MB');const data=JSON.parse(await f.text());if(e.target.id==='import'){validateImported(data);const next=[data,...state.editions.filter(x=>x.id!==data.id)];if(!write('editions',next))return;state.editions=next;toast('已匯入本機編輯版')}else{if(![1,2].includes(data.version)||!Array.isArray(data.saved)||!Array.isArray(data.read)||data.read.some(x=>typeof x!=='string')||!Array.isArray(data.editions))throw Error('備份格式無效');if(data.saved.some(a=>!a.id||!a.title||!safeLink(a.url)||!a.source||!['AI','IT','資安','環境','綜合'].includes(a.topic)))throw Error('收藏格式無效');const editions=data.editions.filter(e=>e.articles?.every(a=>a.status==='edited'));editions.forEach(validateImported);if(!write('saved',data.saved)||!write('read',data.read)||!write('editions',editions))return;Object.assign(state,{saved:data.saved,read:data.read,editions});toast('已還原備份；舊版未編輯期刊不會放入新聞重點')}render()}catch(err){toast('匯入失敗：'+err.message)}finally{e.target.value=''}});
 state.editions=state.editions.filter(e=>e.articles?.every(a=>a.status==='edited'));
 render();loadEditions();loadNeuralStatus();
+window.addEventListener?.('pagehide',()=>{
+ if(cloud.active||cloud.controller||cloud.objectUrl)stopNeuralPlayback();
+ if(player.active)stopSpeech();
+});
 if('serviceWorker' in navigator){
  navigator.serviceWorker.addEventListener('message', event => {
   if(event.data?.type==='NEWS_VERSION_REQUEST')event.ports?.[0]?.postMessage({version:APP_RELEASE});

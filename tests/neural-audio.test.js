@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {editions} from './fixtures/editions.js';
+import {PRODUCT_PROFILES} from '../worker/product-profiles.js';
 import {generateNeuralAudio,prepareNeuralArticle,pcmToWav,neuralStatus,handleNeuralAudio,AUDIO_TTL_MS,NEURAL_MODEL} from '../worker/neural-audio.js';
 const article=editions[0].articles[0];
 function connection(transcript,confirmedVoice='cedar',pcm=new Uint8Array([0,0,64,0])){
@@ -36,6 +37,20 @@ test('only starts synthesis when OpenAI confirms Cedar for the session',async()=
  assert.ok(c.isClosed());
 });
 test('changed narration is rejected rather than quietly changing the news',async()=>{const c=connection(article.speech_script+'現在已經完全安全。');await assert.rejects(generateNeuralAudio(article.speech_script,{apiKey:'test-only',connect:async()=>c.socket}),e=>e.code==='narration_mismatch');assert.ok(c.isClosed());assert.throws(()=>pcmToWav([new Uint8Array(3)]),e=>e.code==='invalid_audio')});
+test('Cedar sends the reviewed product introduction verbatim and keeps the advisory number and due date',async()=>{
+ const profile=PRODUCT_PROFILES.find(entry=>entry.id==='sap-netweaver');
+ const advisory='這筆公告的漏洞編號是 CVE-2025-42884，目錄列出的處置期限是2026年11月23日。';
+ const script=profile.intro+advisory;
+ const styled=script.replace('SAP','Ｓ．Ａ．Ｐ．').replace('CVE-','C V E – ');
+ const session=connection(styled);
+ const result=await generateNeuralAudio(script,{apiKey:'fixture-only',connect:async()=>session.socket});
+ assert.equal(session.sent[1].item.content[0].text,script);
+ assert.equal(result.transcript,styled);
+ for(const changed of [advisory,script.replace('SAP','IBM'),script.replace('42884','42848'),script.replace('23日','24日')]){
+  const wrong=connection(changed);
+  await assert.rejects(generateNeuralAudio(script,{apiKey:'fixture-only',connect:async()=>wrong.socket}),e=>e.code==='narration_mismatch');
+ }
+});
 test('shared store reuses output, expires it after 72 hours, and keys corrections separately',async()=>{const objects=new Map();let generated=0,deletions=0;const now=Date.now();const store={async get(key){const object=objects.get(key);return object?{customMetadata:object.meta,arrayBuffer:async()=>object.audio}:null},async put(key,audio,options){objects.set(key,{audio,meta:options.customMetadata})},async delete(key){deletions++;objects.delete(key)}};const env={OPENAI_API_KEY:'test-only',AUDIO_BUCKET:store};const generate=async()=>{generated++;return {audio:new Uint8Array([1,2,3,4])}};
  const one=await prepareNeuralArticle(article,env,{generate,now});assert.equal(one.cached,false);assert.equal(one.expires_at,now+AUDIO_TTL_MS);
  const two=await prepareNeuralArticle(article,env,{generate,now:now+1});assert.equal(two.cached,true);assert.equal(generated,1);

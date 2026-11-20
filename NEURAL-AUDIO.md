@@ -39,3 +39,9 @@ LuniHub 應透過公司後端授權讀取共用音訊，同一期的音檔可重
 ## 試音驗收
 
 以 Cedar 朗讀已出版的繁中新聞稿。評估候選音色時，使用同一份 60–90 秒稿件進行比較，涵蓋日期、百分比、OpenAI、PFAS、碳權及草案等用語。檢查：語意停頓、過度重音、中英切換、數字與名稱、逐字一致性。通過單則後再聽完整晨報，檢查篇與篇之間的音量、語速與聲音一致。最後用 iPhone Safari／PWA 驗證背景、鎖屏、拖曳及續播。程式測試通過不等同聲音品質通過。
+
+### Cedar 播完後接回 Spotify
+
+先在手機播放 Spotify，再開啟 News Station 聽一期 Cedar。分別驗證正常播完與中途按「停止」。兩種情況都應卸載新聞音源、清除 News Station 的鎖屏控制，讓手機重新分配音訊焦點。另測暫停後從鎖屏繼續，確認播報中仍可控制 Cedar。[Web Media Session](https://www.w3.org/TR/mediasession/)
+
+實機驗收要分別記錄「Spotify 自動繼續」和「可從 Spotify 按播放繼續」。接到暫時中斷或一般媒體切換時，系統與 Spotify 的恢復行為可能不同。整期新聞維持長篇媒體播放行為，網頁無法指定 Spotify 必須續播。[Apple 音訊中斷處理](https://developer.apple.com/documentation/avfaudio/handling-audio-interruptions) · [Android 音訊焦點](https://developer.android.com/media/optimize/audio-focus) · [Web Audio Session 類型](https://www.w3.org/TR/audio-session/#audio-session-types)

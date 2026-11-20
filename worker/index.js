@@ -4,9 +4,10 @@ import {readSource} from './news-feed.js';
 import {collectNews} from './news-collection.js';
 import {getEditionForDate, readEditionPage, handleEditionPublish} from './edition-store.js';
 import {handleNeuralAudio} from './neural-audio.js';
+import {enrichEdition} from './product-context.js';
 import {refreshEdition} from './refresh-edition.js';
 import { SOURCES, COLLECTION_SETTINGS, SOURCE_REGISTRY, REVIEWED_PACKS } from '../.generated/source-data.js';
-const APP_RELEASE = '0.1.11';
+const APP_RELEASE = '0.1.12';
 export {safeUrl} from './source-registry.js';
 export function parseSource(source, body) {
   return readSource(source, body).items;
@@ -15,11 +16,11 @@ const privateHeaders = {'Cache-Control':'private, no-store'};
 async function findEdition(env, id) {
   if (typeof id !== 'string') return null;
   const bundled = EDITIONS.find(edition => edition.id === id);
-  if (bundled) return bundled;
+  if (bundled) return enrichEdition(bundled);
   const parts = /^(\d{4}-\d{2}-\d{2})-(morning|evening)(?:-|$)/.exec(id);
   if (!parts) return null;
   const edition = await getEditionForDate(env, EDITIONS, parts[1], parts[2]);
-  return edition?.id === id ? edition : null;
+  return edition?.id === id ? enrichEdition(edition) : null;
 }
 
 async function listEditions(url, env) {
@@ -34,12 +35,12 @@ async function listEditions(url, env) {
       page = await readEditionPage(env, EDITIONS, {before:url.searchParams.get('before')});
       page.editions.sort((a,b) => Date.parse(a.published_at) - Date.parse(b.published_at));
     }
-    return Response.json({...page, publication_mode:env?.EDITION_BUCKET?'edition_store':'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
+    return Response.json({...page, editions:page.editions.map(enrichEdition), publication_mode:env?.EDITION_BUCKET?'edition_store':'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
   } catch (error) {
     if (env?.EDITION_BUCKET && EDITIONS.length && !url.search && (!error.status || error.status >= 500)) {
       const snapshot = await readEditionPage({}, EDITIONS);
       snapshot.editions.sort((a,b) => Date.parse(a.published_at) - Date.parse(b.published_at));
-      return Response.json({...snapshot, archive_status:'unavailable', publication_mode:'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
+      return Response.json({...snapshot, editions:snapshot.editions.map(enrichEdition), archive_status:'unavailable', publication_mode:'editorial_snapshot', automatic_publication:false}, {headers:privateHeaders});
     }
     return Response.json({error:error.code || 'edition_store_unavailable'}, {status:error.status || 503, headers:privateHeaders});
   }
@@ -123,4 +124,5 @@ const HTML = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><m
 
 .brief-facts{padding-left:20px;margin:14px 0;font-size:14px;line-height:1.9}.brief-facts li{margin:7px 0}.why{background:#edf0e8;padding:13px 15px;border-radius:5px;font-size:12px;line-height:1.85}.why b{display:block;font-size:10px;color:#76836d;letter-spacing:1px;margin-bottom:5px}.uncertainty{font-size:11px;color:#7b806d;line-height:1.8;margin-top:12px}.player{border:1px solid var(--line);border-radius:7px;padding:12px;margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}.player button{font-size:12px}.player-label{flex:1;min-width:100px;color:var(--muted)}.archive-select{border:1px solid var(--line);border-radius:5px;padding:8px;background:transparent;color:var(--ink);max-width:100%;font-size:12px;margin:15px 0 0}.source-toggle{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;margin:16px 0}.evidence-row{font-size:12px;border-top:1px solid var(--line);padding:12px 0;line-height:1.8}.evidence-row a{margin:5px 0}details{margin-top:20px;font-size:12px;line-height:1.9}summary{cursor:pointer;min-height:44px;display:flex;align-items:center}.raw{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted)}dialog h3{font-size:15px;margin-top:24px}.read-time{color:var(--muted);font-size:11px;margin-top:8px}@media(max-width:650px){.brief-facts{font-size:13px}.player{gap:5px}.player-label{min-width:100%;font-size:11px}.edition-top h1{font-size:29px}.why{padding:11px 12px}}
 .edition-refresh.toolbar{justify-content:flex-start;gap:12px;flex-wrap:wrap;margin:14px 0}.edition-refresh button{font-size:14px;font-weight:600}.edition-refresh button:disabled{cursor:wait;opacity:.65}.edition-refresh .label{flex:1 1 180px;font-size:14px;color:var(--ink)}
+.product-intro{line-height:1.75;margin:.6rem 0;overflow-wrap:anywhere}.product-intro a{font-size:.875rem}
 </style></head><body><header><div class="brand">News Station<span>●</span></div><div class="private"><span class="dot"></span>個人新聞工作站 <span class="eyebrow"> · PRIVATE EDITION</span></div></header><section id="neural-player" hidden style="max-width:900px;margin:20px auto;padding:15px 20px;background:#e8ede4;border-radius:8px"><strong id="neural-title">AI 合成語音</strong><p id="neural-state" class="label" role="status"></p><audio id="neural-audio" controls playsinline preload="metadata" style="width:100%"></audio><button class="secondary" data-action="neural-stop">停止</button><p class="label">由 OpenAI 合成的台灣華語新聞口播。</p></section><div class="layout"><aside><div class="eyebrow">YOUR DAILY PERSPECTIVE</div><nav id="nav"></nav><div class="side-note">少一點雜訊，<br>多一點理解。<br><br>AI · IT · 資安 · 環境<br><span class="eyebrow">NEWS STATION / 0.1</span></div></aside><main><div class="edition-top"><div><div class="date" id="date"></div><h1 id="title">今天，值得知道<span>。</span></h1></div><div class="switch" id="editions"><button data-edition="morning">☀ 晨報</button><button data-edition="evening">☾ 晚報</button></div></div><p class="sub" id="subtitle">從資訊洪流中，留下值得關注的事。</p><div id="body"></div></main><section class="rail"><div class="rail-box dark"><div class="eyebrow">LISTEN & UNDERSTAND</div><h3>把通勤時間，留給新知。</h3><p>聽一份重新編寫的繁中口播稿，不照念網址或更新紀錄。</p><button class="secondary" data-hero-audio data-action="neural-play" disabled style="color:white;margin-top:8px">載入播音設定中…</button><div class="progress"></div><div class="label" data-hero-audio-note style="color:#b8c9bb"></div></div><div class="rail-box"><div class="eyebrow">DAILY RHYTHM</div><h3>每天兩次，掌握脈動</h3><div class="schedule"><span>☀ 晨報</span><b>07:00</b></div><div class="schedule"><span>☾ 晚報</span><b>16:30</b></div><p class="rule">Asia / Taipei<br>建議出版時間 · 排程尚未啟用</p></div><div class="rail-box"><div class="eyebrow">OUR EDITORIAL PROMISE</div><h3>事實有來源，判讀有標記。</h3><p>官方公告是可追溯的一手聲明。候選內容完成審核之前，不會進入正式晨晚報。</p></div><div class="label">獨立運作 · 為個人閱讀而設計<br>收藏與閱讀進度保存在這台裝置</div></section></div><nav class="mobile-nav" id="mobile-nav"></nav><dialog id="detail"></dialog><div id="toast" class="toast" hidden role="status"></div><script>${CLIENT_SCRIPT}</script></body></html>`;
